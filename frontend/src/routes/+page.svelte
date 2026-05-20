@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>StreamTogether — Watch With Everyone</title>
+  
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTgwIDE4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNIDQwLDMwIEMgLTEwLDcwIC0xMCwxMTAgNDAsMTUwIEwgODUsMTA1IEMgNjAsODUgNjAsNDUgODUsMjUgWiIgZmlsbD0iIzYzNjZmMSIvPjxwb2x5Z29uIHBvaW50cz0iMTA2LDQ2IDE4MCw4NSAxMDYsMTI0IiBmaWxsPSIjMDBmMmZlIi8+PGNpcmNsZSBjeD0iOTAiIGN5PSI4NSIgcj0iMTAiIGZpbGw9IiNmOGZhZmMiLz48L3N2Zz4=" />
+  
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -63,12 +66,10 @@
       color: var(--text-main); text-decoration: none;
       letter-spacing: -0.03em;
     }
-    .logo-dot {
-      width: 32px; height: 32px; border-radius: 10px;
-      background: var(--gradient-brand);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.75rem; color: #070913; font-weight: 800;
-      box-shadow: 0 0 20px rgba(0, 242, 254, 0.3);
+    .logo svg {
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
     }
     .nav-links { display: flex; align-items: center; gap: 32px; }
     .nav-links a {
@@ -202,11 +203,6 @@
       border-color: rgba(255,255,255,0.25);
       transform: translateY(-2px);
       box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-    }
-
-    @keyframes fadeUp {
-      from { opacity:0; transform:translateY(30px); }
-      to   { opacity:1; transform:translateY(0); }
     }
 
     /* ── SKELETON LOADING EFFECTS ── */
@@ -347,9 +343,9 @@
     .reaction-bubble:nth-child(2) { animation-delay: 0.8s; }
     .reaction-bubble:nth-child(3) { animation-delay: 1.6s; }
     @keyframes floatUp {
-      0%   { opacity:0; transform:translateY(15px); }
-      15%  { opacity:1; }
-      85%  { opacity:1; }
+      0%   { opacity:0; transform:translateY(15px); }
+      15%  { opacity:1; }
+      85%  { opacity:1; }
       100% { opacity:0; transform:translateY(-45px); }
     }
 
@@ -402,9 +398,9 @@
     .feature-card:hover .feature-icon { transform: scale(1.1) rotate(4deg); }
     
     .ic-coral { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-    .ic-teal  { background: rgba(0, 242, 254, 0.1); color: var(--accent-secondary); }
+    .ic-teal  { background: rgba(0, 242, 254, 0.1); color: var(--accent-secondary); }
     .ic-purple{ background: rgba(99, 102, 241, 0.1); color: var(--accent-primary); }
-    .ic-gold  { background: rgba(245, 166, 35, 0.1); color: var(--warning); }
+    .ic-gold  { background: rgba(245, 166, 35, 0.1); color: var(--warning); }
 
     .feature-card h3 {
       font-weight: 700; font-size: 1.25rem;
@@ -442,7 +438,7 @@
       transform: translateY(-2px);
     }
     .step h3 { font-weight: 700; font-size: 1.25rem; margin-bottom: 12px; color: var(--text-main); }
-    .step p  { font-size: 0.95rem; color: var(--text-muted); line-height: 1.7; }
+    .step p  { font-size: 0.95rem; color: var(--text-muted); line-height: 1.7; }
 
     /* ── SOURCES ── */
     .sources-section { padding: 120px 56px; }
@@ -571,7 +567,6 @@
     @media (max-width: 600px) {
       nav { padding: 12px 16px; }
       .logo { font-size: 1.2rem; gap: 8px; }
-      .logo-dot { width: 28px; height: 28px; border-radius: 8px; }
       
       .hero { padding: 120px 16px 60px; }
       .hero-badge { font-size: 0.75rem; padding: 6px 14px 6px 10px; margin-bottom: 24px; }
@@ -586,7 +581,7 @@
       .video-placeholder { padding: 24px 16px; gap: 12px; }
       .play-btn { width: 52px; height: 52px; font-size: 1.1rem; }
       .video-title { font-size: 0.85rem; }
-      .preview-reactions { display: none; } /* Hide cluttering absolute reactions on tiny screens */
+      .preview-reactions { display: none; } 
       .preview-sidebar { display: flex; max-height: 320px; }
       .chat-messages { padding: 16px; gap: 10px; }
       .chat-input { padding: 12px; }
@@ -633,10 +628,13 @@
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
   <a href="#" class="logo">
-    <div class="logo-dot">▶</div>
+    <svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 40,30 C -10,70 -10,110 40,150 L 85,105 C 60,85 60,45 85,25 Z" fill="#6366f1" />
+      <polygon points="106,46 180,85 106,124" fill="#00f2fe" />
+      <circle cx="90" cy="85" r="10" fill="#f8fafc" />
+    </svg>
     StreamTogether
   </a>
   <div class="nav-links">
@@ -651,7 +649,6 @@
   </div>
 </nav>
 
-<!-- HERO -->
 <section class="hero">
   <div class="hero-bg-blobs">
     <div class="blob blob-1"></div>
@@ -674,7 +671,6 @@
     </a>
   </div>
 
-  <!-- Preview Window with Skeletons -->
   <div class="hero-preview">
     <div class="preview-card">
       <div class="preview-topbar">
@@ -692,7 +688,6 @@
           <div class="video-progress">
             <div class="video-progress-bar"></div>
           </div>
-          <!-- Floating reactions -->
           <div class="preview-reactions">
             <div class="reaction-bubble">😮 Mind-blown!</div>
             <div class="reaction-bubble">🔥 Best scene ever</div>
@@ -720,7 +715,6 @@
               </div>
             </div>
             
-            <!-- Skeleton Chat State Message -->
             <div class="chat-msg">
               <div class="avatar skeleton"></div>
               <div class="msg-content">
@@ -747,7 +741,6 @@
   </div>
 </section>
 
-<!-- REAL VALUE STRIP -->
 <div class="social-strip">
   <div class="social-item">
     <span class="social-num">⚡ &nbsp; 0ms</span>
@@ -767,7 +760,6 @@
   </div>
 </div>
 
-<!-- FEATURES -->
 <section class="section" id="features">
   <div style="max-width:1200px; margin:0 auto;">
     <span class="section-label">Features</span>
@@ -809,7 +801,6 @@
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
 <section class="how-section" id="how">
   <div style="max-width:1200px; margin:0 auto;">
     <span class="section-label">Frictionless Flow</span>
@@ -835,7 +826,6 @@
   </div>
 </section>
 
-<!-- SOURCES -->
 <section class="sources-section" id="sources" style="text-align:center;">
   <span class="section-label">Compatibility</span>
   <h2 class="section-title">Stream from any platform</h2>
@@ -853,7 +843,6 @@
   </div>
 </section>
 
-<!-- TESTIMONIALS -->
 <section class="testimonials-section">
   <div style="max-width:1200px; margin:0 auto; text-align:center;">
     <span class="section-label">User Praise</span>
@@ -896,7 +885,6 @@
   </div>
 </section>
 
-<!-- CTA -->
 <div class="cta-section">
   <span class="section-label">Get Started</span>
   <h2>Your next dynamic movie night<br />starts right now.</h2>
@@ -910,12 +898,15 @@
   </div>
 </div>
 
-<!-- FOOTER -->
 <footer>
   <div class="footer-top">
     <div class="footer-brand">
       <a href="#" class="logo">
-        <div class="logo-dot">▶</div>
+        <svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+          <path d="M 40,30 C -10,70 -10,110 40,150 L 85,105 C 60,85 60,45 85,25 Z" fill="#6366f1" />
+          <polygon points="106,46 180,85 106,124" fill="#00f2fe" />
+          <circle cx="90" cy="85" r="10" fill="#f8fafc" />
+        </svg>
         StreamTogether
       </a>
       <p>Watch premium media synchronised perfectly with anyone, anywhere. Free forever.</p>
