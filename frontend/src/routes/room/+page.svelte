@@ -15,7 +15,6 @@
   onMount(() => {
     currentRoomUrl = window.location.href;
     
-    // Auto-detect mobile landscape orientation to give optimal video real estate
     const checkOrientation = () => {
       isMobileLandscape = window.innerWidth < 768 && window.innerWidth > window.innerHeight;
     };
@@ -80,7 +79,6 @@
       <div class="system-status">
         <a href="/" class="leave-room-trigger" title="Leave Room">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-          <span>Leave</span>
         </a>
       </div>
     </header>
@@ -89,9 +87,8 @@
       <div class="canvas-blur-backing"></div>
       
       <div class="canvas-control-overlay">
-        <button class="fullscreen-trigger-btn" on:click={toggleFullscreenElement} title="Maximize Playback Canvas">
+        <button class="fullscreen-trigger-btn" on:click={toggleFullscreenElement} title="Toggle Fullscreen">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4h4m12 4V4h-4M4 16v4h4m12-4v4h-4" /></svg>
-          <span>Landscape / Fullscreen</span>
         </button>
       </div>
 
@@ -119,15 +116,15 @@
       </div>
       
       <div class="pipeline-triggers">
-        <button on:click={handleMediaSubmit} class="pipe-btn fill-blue">
+        <button on:click={handleMediaSubmit} class="pipe-btn fill-blue" title="Screenshare">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8m-4-4v4"/></svg>
           <span>Screenshare</span>
         </button>
-        <button on:click={handleMediaSubmit} class="pipe-btn fill-green">
+        <button on:click={handleMediaSubmit} class="pipe-btn fill-green" title="VBrowser">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
           <span>VBrowser</span>
         </button>
-        <button on:click={handleMediaSubmit} class="pipe-btn fill-purple">
+        <button on:click={handleMediaSubmit} class="pipe-btn fill-purple" title="File Cast">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           <span>File Cast</span>
         </button>
@@ -246,7 +243,7 @@
 
   /* NAVIGATION AND IDENTITY TOP ROW */
   .room-top-bar {
-    height: 52px; padding-bottom: 12px;
+    height: 44px; padding-bottom: 8px;
     background: transparent;
     border-bottom: 1px solid var(--border-faint-line);
     display: flex; align-items: center; justify-content: space-between;
@@ -259,11 +256,12 @@
   
   .system-status { display: flex; align-items: center; }
   .leave-room-trigger {
-    display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; color: #f43f5e; 
-    text-decoration: none; padding: 6px 12px; border-radius: 6px; background: rgba(244, 63, 94, 0.05);
+    display: flex; align-items: center; justify-content: center; color: #f43f5e; 
+    text-decoration: none; padding: 8px; border-radius: 8px; background: rgba(244, 63, 94, 0.05);
     border: 1px solid rgba(244, 63, 94, 0.15); transition: all 0.2s;
   }
-  .leave-room-trigger svg { width: 12px; height: 12px; }
+  .leave-room-trigger svg { width: 14px; height: 14px; }
+  .leave-room-trigger span { display: inline; font-size: 0.8rem; font-weight: 600; margin-left: 6px; }
   .leave-room-trigger:hover { background: #f43f5e; color: #fff; border-color: #f43f5e; }
 
   /* HUB APPARATUS CORE LAYOUT FRAMEWORK */
@@ -320,18 +318,18 @@
   }
   .canvas-blur-backing { position: absolute; inset: 0; opacity: 0.03; background: radial-gradient(circle at center, var(--neon-cyan), transparent 60%); }
   
-  /* ACTION LAYER OVER VIDEO SYSTEM BOUNDS */
+  /* MINIMAL CONTROL OVERLAY */
   .canvas-control-overlay {
-    position: absolute; top: 12px; right: 12px; z-index: 5; display: flex; gap: 8px;
+    position: absolute; top: 12px; right: 12px; z-index: 5;
   }
   .fullscreen-trigger-btn {
-    background: rgba(4, 8, 14, 0.7); border: 1px solid var(--border-mid-line);
-    color: var(--font-primary); border-radius: 6px; font-size: 0.72rem; font-weight: 600;
-    padding: 6px 12px; display: flex; align-items: center; gap: 6px; cursor: pointer;
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: background 0.2s;
+    background: rgba(4, 8, 14, 0.6); border: 1px solid var(--border-faint-line);
+    color: var(--font-primary); border-radius: 6px; width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: background 0.2s, border-color 0.2s;
   }
-  .fullscreen-trigger-btn:hover { background: rgba(4, 8, 14, 0.9); }
-  .fullscreen-trigger-btn svg { width: 12px; height: 12px; color: var(--neon-cyan); }
+  .fullscreen-trigger-btn:hover { background: rgba(4, 8, 14, 0.8); border-color: rgba(255,255,255,0.2); }
+  .fullscreen-trigger-btn svg { width: 14px; height: 14px; color: var(--neon-cyan); }
 
   .canvas-empty-state { text-align: center; max-width: 380px; padding: 24px; position: relative; z-index: 2; }
   .empty-state-icon { width: 48px; height: 48px; margin: 0 auto 16px; color: var(--neon-cyan); }
@@ -397,12 +395,8 @@
   .message-dispatch-trigger svg { width: 12px; height: 12px; }
   .chat-input-wrapper input:not(:placeholder-shown) + .message-dispatch-trigger { background: var(--neon-blue); color: #fff; border-color: var(--neon-blue); }
 
-  /* ======================================================================
-    ULTRA-RESPONSIVE INTERFACE ARCHITECTURE ENGINE (MOBILE MATURATION)
-    ======================================================================
-  */
+  /* RESPONSIVE PIPELINE LAYOUT RULES */
   @media (max-width: 768px) {
-    /* Converts grid distribution to unified flex pipeline stacking */
     .workspace-viewport {
       grid-template-columns: 1fr;
       grid-template-rows: auto 1fr;
@@ -413,115 +407,65 @@
     .media-engine-container {
       padding: 12px;
       gap: 12px;
-      overflow: visible; /* Prevents inside viewport collision chains */
+      overflow: visible;
       height: auto;
     }
 
     .room-top-bar {
-      height: 44px;
+      height: 40px;
       padding-bottom: 4px;
     }
+    .leave-room-trigger span { display: none; } /* Hide layout breaks on mobile */
 
-    /* PRIORITIZES THE VIDEO SCREEN DISPLAY HEIGHT AND IMMERSION RADIUS */
     .video-canvas-viewport {
-      min-height: calc(56.25vw - 24px); /* Perfectly keeps exact 16:9 box real estate proportions */
+      min-height: calc(56.25vw - 24px); /* Locks player canvas exactly to 16:9 ratio blocks */
       border-radius: 10px;
     }
 
-    .canvas-empty-state {
-      padding: 16px;
-    }
-    .empty-state-icon {
-      width: 36px; height: 36px; margin-bottom: 12px;
-    }
+    .canvas-empty-state { padding: 16px; }
+    .empty-state-icon { width: 36px; height: 36px; margin-bottom: 12px; }
     .canvas-empty-state h4 { font-size: 0.95rem; }
     .canvas-empty-state p { font-size: 0.78rem; }
 
-    /* REDUCES BUTTON TEXT ACCENTS ON PHONES SO CONTROLS FIT SECURELY IN A SINGLE LINE */
-    .source-injector-card {
-      padding: 12px;
-      border-radius: 10px;
-    }
-    .input-row {
-      padding: 8px 12px;
-      margin-bottom: 8px;
-    }
-    .pipe-btn {
-      padding: 8px 10px;
-      font-size: 0.75rem;
-      border-radius: 6px;
-    }
-    .pipe-btn svg {
-      margin: 0; /* Centers icons perfectly when running compressed structural text */
-    }
-    .pipe-btn span {
-      display: none; /* Safely strips textual descriptions to ensure buttons never overlay awkwardly */
-    }
-    .pipe-btn.action-submit span {
-      display: inline; /* Keep text representation for main stream initialization triggers */
-    }
+    .source-injector-card { padding: 12px; border-radius: 10px; }
+    .input-row { padding: 8px 12px; margin-bottom: 8px; }
+    .pipe-btn { padding: 8px 10px; font-size: 0.75rem; border-radius: 6px; }
+    .pipe-btn svg { margin: 0; }
+    .pipe-btn span { display: none; } /* Drops label text so layout parameters never stretch on mobile screens */
+    .pipe-btn.action-submit span { display: inline; }
 
-    /* SIDEBAR SYSTEM TRANSLATION TO BOTTOM CHAT STREAM MODULE */
     .dashboard-sidebar-container {
       border-left: none;
       border-top: 1px solid var(--border-faint-line);
-      height: 400px; /* Locked constraint block ensuring container never breaks bounds */
+      height: 400px;
       background: linear-gradient(to bottom, var(--bg-dark-surface), var(--bg-dark-base));
     }
 
-    .invite-management-surface {
-      padding: 14px 16px;
-    }
-    .chat-module-surface {
-      padding: 0 4px;
-    }
-    .message-scroller-layer {
-      padding: 14px 16px;
-    }
-    .feed-input-footer {
-      padding: 10px 16px 16px;
-    }
+    .invite-management-surface { padding: 14px 16px; }
+    .message-scroller-layer { padding: 14px 16px; }
+    .feed-input-footer { padding: 10px 16px 16px; }
   }
 
-  /* ======================================================================
-    LANDSCAPE OPTIMIZATION INTERFACE DETECTOR
-    ======================================================================
-  */
+  /* LANDSCAPE ORIENTATION INTERVENTION */
   @media (max-width: 920px) and (orientation: landscape) {
-    /* Maximize viewing footprint completely if user screens are horizontally oriented */
     .workspace-viewport.landscape-mode {
       grid-template-columns: 1fr;
       grid-template-rows: 100vh;
       overflow: hidden;
     }
     .workspace-viewport.landscape-mode .media-engine-container {
-      padding: 0;
-      gap: 0;
-      height: 100%;
-      width: 100vw;
+      padding: 0; gap: 0; height: 100%; width: 100vw;
     }
     .workspace-viewport.landscape-mode .room-top-bar,
     .workspace-viewport.landscape-mode .source-injector-card,
     .workspace-viewport.landscape-mode .dashboard-sidebar-container {
-      display: none !important; /* Temporarily strips distraction modules to mimic immersive smart player ecosystems */
+      display: none !important; /* Hide secondary structures entirely to match video stream estate space demands */
     }
     .workspace-viewport.landscape-mode .video-canvas-viewport {
-      height: 100vh;
-      width: 100vw;
-      border-radius: 0;
-      border: none;
+      height: 100vh; width: 100vw; border-radius: 0; border: none;
     }
   }
 
-  /* NATIVE PLAYER ATTRIBUTE SELECTION TARGETING FULLSCREEN EXECUTIONS */
-  .video-canvas-viewport:fullscreen {
-    padding: 0 !important;
-    background: #000;
-  }
-  .video-canvas-viewport:fullscreen .canvas-control-overlay {
-    top: 24px; right: 24px;
-  }
-  .video-canvas-viewport:fullscreen .canvas-empty-state {
-    transform: scale(1.15);
-  }
+  .video-canvas-viewport:fullscreen { padding: 0 !important; background: #000; }
+  .video-canvas-viewport:fullscreen .canvas-control-overlay { top: 24px; right: 24px; }
 </style>
