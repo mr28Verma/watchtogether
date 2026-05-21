@@ -4,15 +4,25 @@
   let streamInputUrl = '';
   let inviteCopied = false;
   let currentRoomUrl = '';
+  let isMobileLandscape = false;
 
   let messages = [
-    { id: 1, user: 'Alex', text: 'Hey everyone! Glad you could make it.', time: '12:04' },
-    { id: 2, user: 'Sarah', text: 'Ready for movie night! What are we watching?', time: '12:05' }
+    { id: 1, user: 'Alex', text: '🍿 Yo! Pass the digital popcorn. What are we watching?', time: '12:04', isHost: true },
+    { id: 2, user: 'Sarah', text: 'Nolan marathon or sci-fi nights? Let’s drop the magnet link!', time: '12:05', isHost: false }
   ];
   let newMessage = '';
 
   onMount(() => {
     currentRoomUrl = window.location.href;
+    
+    const checkOrientation = () => {
+      isMobileLandscape = window.innerWidth < 960 && window.innerWidth > window.innerHeight;
+    };
+    
+    window.addEventListener('resize', checkOrientation);
+    checkOrientation();
+    
+    return () => window.removeEventListener('resize', checkOrientation);
   });
 
   function copyInviteLink() {
@@ -31,24 +41,28 @@
       id: Date.now(),
       user: 'You',
       text: newMessage,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isHost: true
     }];
     newMessage = '';
+    
+    setTimeout(() => {
+      const scroller = document.querySelector('.message-scroller-layer');
+      if (scroller) scroller.scrollTop = scroller.scrollHeight;
+    }, 50);
   }
 
   function toggleFullscreenElement() {
     const player = document.querySelector('.video-canvas-viewport');
     if (!document.fullscreenElement) {
-      player.requestFullscreen?.().catch(err => {
-        alert(`Error enabling fullscreen: ${err.message}`);
-      });
+      player.requestFullscreen?.().catch(err => alert(`Error enabling fullscreen: ${err.message}`));
     } else {
       document.exitFullscreen?.();
     }
   }
 </script>
 
-<main class="workspace-viewport">
+<main class="workspace-viewport" class:landscape-mode={isMobileLandscape}>
   <div class="ambient-glow decoration-left"></div>
   <div class="ambient-glow decoration-right"></div>
   
@@ -135,7 +149,7 @@
         <h5>Sync Node Access</h5>
         <div class="live-counter">
           <span class="pulse-dot"></span>
-          <span>{messages.length ? messages.length : 1} live</span>
+          <span>{messages.length ? messages.length : 1} connected</span>
         </div>
       </div>
       
@@ -154,21 +168,24 @@
 
     <div class="chat-module-surface">
       <div class="module-navigation-tabs">
-        <div class="tab-label">Live Room Feed</div>
+        <div class="tab-label">
+          <span>Party Feed</span>
+        </div>
       </div>
 
       <div class="message-scroller-layer">
         {#each messages as msg (msg.id)}
-          <div class="chat-message-node" class:self-message={msg.user === 'You'}>
-            <div class="node-avatar" style="background: ${msg.user === 'You' ? 'var(--neon-blue)' : msg.user === 'Alex' ? 'var(--neon-cyan)' : 'var(--neon-purple)'}">
-              {msg.user[0]}
+          <div class="chat-card-wrapper" class:self-card={msg.user === 'You'}>
+            <div class="chat-card-header">
+              <span class="card-author" class:host-accent={msg.isHost}>{msg.user}</span>
+              {#if msg.isHost}
+                <span class="host-tag">HOST</span>
+              {/if}
+              <span class="card-time">{msg.time}</span>
             </div>
-            <div class="node-content">
-              <div class="meta-row">
-                <span class="user-name">{msg.user}</span>
-                <span class="timestamp">{msg.time}</span>
-              </div>
-              <p class="message-body">{msg.text}</p>
+            
+            <div class="chat-card-bubble">
+              <p>{msg.text}</p>
             </div>
           </div>
         {/each}
@@ -178,11 +195,11 @@
         <div class="chat-input-wrapper">
           <input 
             type="text" 
-            placeholder="Broadcast a synced tracking message..." 
+            placeholder="Type your reaction here..." 
             bind:value={newMessage}
             on:keydown={(e) => e.key === 'Enter' && sendMessage()}
           />
-          <button on:click={sendMessage} class="message-dispatch-trigger" aria-label="Send Message">
+          <button on:click={sendMessage} class="message-dispatch-trigger" class:has-text={newMessage.trim() !== ''} aria-label="Send Message">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
@@ -193,7 +210,7 @@
 </main>
 
 <style>
-  /* DESIGN CORE TOKENS */
+  /* CONFIGURATION DESIGN SYSTEM CONSTANTS */
   :root {
     --bg-dark-base: #04080e;
     --bg-dark-surface: #090f17;
@@ -203,6 +220,7 @@
     --neon-blue: #3b82f6;
     --neon-purple: #8b5cf6;
     --neon-green: #10b981;
+    --neon-amber: #f5a623;
     
     --border-faint-line: rgba(255, 255, 255, 0.04);
     --border-mid-line: rgba(255, 255, 255, 0.09);
@@ -251,6 +269,7 @@
     border: 1px solid rgba(244, 63, 94, 0.15); transition: all 0.2s;
   }
   .leave-room-trigger svg { width: 14px; height: 14px; }
+  .leave-room-trigger:hover { background: #f43f5e; color: #fff; border-color: #f43f5e; }
 
   .workspace-viewport {
     height: 100%;
@@ -342,38 +361,41 @@
   .copy-trigger svg { width: 10px; height: 10px; }
   .copy-trigger.copied { background: var(--neon-green); color: #fff; }
 
-  .chat-module-surface { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  /* ======================================================================
+     ASYMMETRICAL STORY CARD CHAT UI ENGINE
+     ====================================================================== */
+  .chat-module-surface { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
   .module-navigation-tabs { padding: 14px 20px; border-bottom: 1px solid var(--border-faint-line); }
   .tab-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--font-primary); opacity: 0.8; }
-
-  .message-scroller-layer { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+  .message-scroller-layer { flex: 1; padding: 24px 20px; display: flex; flex-direction: column; gap: 24px; overflow-y: auto; scroll-behavior: smooth; }
   
-  .chat-message-node { display: flex; gap: 10px; align-items: flex-start; }
-  .node-avatar { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: #fff; flex-shrink: 0; }
-  .node-content { flex: 1; min-width: 0; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.01); padding: 8px 12px; border-radius: 8px; }
-  .meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
-  .user-name { font-size: 0.72rem; font-weight: 700; color: var(--font-primary); }
-  .timestamp { font-size: 0.62rem; color: var(--font-secondary); }
-  .message-body { font-size: 0.8rem; color: var(--font-primary); opacity: 0.85; line-height: 1.4; word-break: break-word; }
+  .chat-card-wrapper { display: flex; flex-direction: column; max-width: 88%; align-self: flex-start; position: relative; }
+  .chat-card-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; padding: 0 4px; }
+  .card-author { font-size: 0.75rem; font-weight: 800; color: var(--neon-purple); }
+  .card-author.host-accent { color: var(--neon-cyan); }
+  .host-tag { font-size: 0.58rem; font-weight: 900; background: rgba(15, 204, 180, 0.15); color: var(--neon-cyan); padding: 1px 4px; border-radius: 3px; letter-spacing: 0.02em; }
+  .card-time { font-size: 0.62rem; color: var(--font-secondary); font-family: monospace; margin-left: auto; }
 
-  .chat-message-node.self-message { flex-direction: row-reverse; }
-  .chat-message-node.self-message .node-content { background: rgba(59, 130, 246, 0.03); border-color: rgba(59, 130, 246, 0.1); }
-  .chat-message-node.self-message .user-name { color: var(--neon-blue); }
+  .chat-card-bubble { background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-faint-line); border-radius: 16px 16px 16px 2px; padding: 12px 16px; box-shadow: -4px 8px 24px rgba(0,0,0,0.2); transition: transform 0.2s, border-color 0.2s; }
+  .chat-card-bubble:hover { transform: translateY(-2px) scale(1.01); border-color: var(--border-mid-line); }
+  .chat-card-bubble p { font-size: 0.85rem; color: var(--font-primary); opacity: 0.92; line-height: 1.5; word-break: break-word; }
 
-  .feed-input-footer { padding: 14px 20px 20px; border-top: 1px solid var(--border-faint-line); }
-  .chat-input-wrapper { display: flex; background: var(--bg-dark-elevation); border: 1px solid var(--border-faint-line); border-radius: 8px; padding: 4px 4px 4px 12px; align-items: center; gap: 8px; }
-  .chat-input-wrapper input { flex: 1; background: transparent; border: none; outline: none; font-size: 0.82rem; color: var(--font-primary); font-family: inherit; }
-  .chat-input-wrapper input::placeholder { color: var(--font-secondary); opacity: 0.6; }
+  .chat-card-wrapper.self-card { align-self: flex-end; }
+  .chat-card-wrapper.self-card .chat-card-bubble { border-radius: 16px 16px 2px 16px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.02) 100%); border-color: rgba(59, 130, 246, 0.2); box-shadow: 4px 8px 24px rgba(59, 130, 246, 0.06); }
+  .chat-card-wrapper.self-card .card-author { color: var(--neon-blue); }
+
+  .feed-input-footer { padding: 16px 20px 20px; border-top: 1px solid var(--border-faint-line); background: linear-gradient(to top, rgba(4, 8, 14, 0.4), transparent); }
+  .chat-input-wrapper { display: flex; background: rgba(2, 4, 8, 0.5); border: 1px solid var(--border-faint-line); border-radius: 12px; padding: 4px 4px 4px 14px; align-items: center; gap: 10px; transition: border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+  .chat-input-wrapper:focus-within { border-color: rgba(59, 130, 246, 0.4); box-shadow: 0 0 20px rgba(59, 130, 246, 0.08); }
+  .chat-input-wrapper input { flex: 1; background: transparent; border: none; outline: none; font-size: 0.85rem; color: var(--font-primary); font-family: inherit; }
+  .chat-input-wrapper input::placeholder { color: var(--font-secondary); opacity: 0.5; }
   
-  .message-dispatch-trigger {
-    width: 30px; height: 30px; border-radius: 5px; background: rgba(255,255,255,0.02);
-    color: var(--font-secondary); border: 1px solid var(--border-faint-line); cursor: pointer; display: flex;
-    align-items: center; justify-content: center; flex-shrink: 0;
-  }
-  .message-dispatch-trigger svg { width: 12px; height: 12px; }
-  .chat-input-wrapper input:not(:placeholder-shown) + .message-dispatch-trigger { background: var(--neon-blue); color: #fff; border-color: var(--neon-blue); }
+  .message-dispatch-trigger { width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.01); color: var(--font-secondary); border: 1px solid var(--border-faint-line); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.25s ease; }
+  .message-dispatch-trigger svg { width: 13px; height: 13px; }
+  .message-dispatch-trigger.has-text { background: var(--neon-blue); color: #fff; border-color: var(--neon-blue); box-shadow: 0 0 12px rgba(59, 130, 246, 0.35); }
+  .message-dispatch-trigger.has-text:hover { transform: translateY(-1px); opacity: 0.95; }
 
-  /* VERTICAL PORTRAIT STACKING (MOBILE PHONE LAYOUT) */
+  /* RESPONSIVE LAYOUT BREAKPOINTS (PORTRAIT) */
   @media (max-width: 768px) {
     .workspace-viewport {
       grid-template-columns: 1fr;
@@ -401,35 +423,51 @@
   }
 
   /* HARDWARE LEVEL MOBILE LANDSCAPE ENGINE OVERRIDES */
-  /* Target short screen heights typical of mobile rotation paths */
-  @media (max-height: 480px) and (orientation: landscape) {
+  @media (max-height: 540px) and (orientation: landscape), (max-width: 960px) and (orientation: landscape) {
     .workspace-viewport {
-      grid-template-columns: 1fr;
-      grid-template-rows: 100vh;
-      overflow: hidden;
-    }
-    .media-engine-container {
-      padding: 0 !important;
-      gap: 0 !important;
+      display: block !important;
       height: 100vh !important;
       width: 100vw !important;
-      overflow: hidden !important;
+      position: fixed !important;
+      inset: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      z-index: 99999 !important;
+      background: #000 !important;
     }
-    /* Instantly hide clutter properties during small window orientation flips */
+
+    .media-engine-container {
+      position: absolute !important;
+      inset: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      height: 100% !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      overflow: hidden !important;
+      z-index: 10 !important;
+    }
+
     .room-top-bar,
     .source-injector-card,
-    .dashboard-sidebar-container {
+    .dashboard-sidebar-container,
+    .ambient-glow {
       display: none !important;
     }
+
     .video-canvas-viewport {
-      height: 100vh !important;
-      width: 100vw !important;
+      position: absolute !important;
+      inset: 0 !important;
+      height: 100% !important;
+      width: 100% !important;
+      max-height: 100% !important;
+      max-width: 100% !important;
       border-radius: 0 !important;
       border: none !important;
+      margin: 0 !important;
     }
   }
 
-  /* FULL-SCREEN DOM API ATTRIBUTE HOOKS */
   .video-canvas-viewport:fullscreen { padding: 0 !important; background: #000; border: none !important; border-radius: 0 !important; }
   .video-canvas-viewport:fullscreen .canvas-control-overlay { top: 24px; right: 24px; }
 </style>
