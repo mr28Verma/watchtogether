@@ -13,7 +13,7 @@
 
   function handleCreate() {
     const id = Math.random().toString(36).slice(2, 8);
-    alert('Room created!\nLink: watchTogether.app/room/' + id);
+    alert('Room created!\nLink: watchtogether.app/room/' + id);
   }
 </script>
 
@@ -87,7 +87,7 @@
                 <rect x="3" y="11" width="18" height="11" rx="2"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
-              watchTogether.app/room/movie-night
+              watchtogether.app/room/movie-night
             </div>
           </div>
           <div style="width:72px;"></div>
@@ -96,6 +96,11 @@
           <!-- VIDEO -->
           <div class="vpane">
             <div class="vbg"></div>
+            <img
+              src="https://www.hollywoodreporter.com/wp-content/uploads/2014/10/interstellar_a_0.jpg?w=1440&h=810&crop=1"
+              alt="Now playing"
+              class="vpane-img"
+            />
             <div class="play-btn">
               <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             </div>
@@ -608,9 +613,16 @@
     position: relative; overflow: hidden;
     display: flex; align-items: center; justify-content: center;
   }
-  .vbg {
+  .vpane-img {
     position: absolute; inset: 0;
-    background: linear-gradient(170deg, #060e1f 0%, #0b1628 55%, #040a14 100%);
+    width: 100%; height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
+
+  .vbg {
+    position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(170deg, rgba(6,14,31,0.55) 0%, rgba(11,22,40,0.45) 55%, rgba(4,10,20,0.6) 100%);
   }
   .vbg::before {
     content: ''; position: absolute; inset: 0;
@@ -623,7 +635,7 @@
       radial-gradient(1px 1px at 55% 38%, rgba(255,255,255,0.2) 0, transparent 100%);
   }
   .play-btn {
-    position: relative; z-index: 1;
+    position: relative; z-index: 2;
     width: 68px; height: 68px; border-radius: 50%;
     background: linear-gradient(135deg, var(--violet), var(--aqua));
     display: flex; align-items: center; justify-content: center;
@@ -641,12 +653,12 @@
   .play-btn svg { width: 24px; height: 24px; fill: #fff; margin-left: 4px; }
 
   .movie-label {
-    position: absolute; z-index: 1; bottom: 40px;
+    position: absolute; z-index: 2; bottom: 40px;
     font-size: 0.82rem; font-weight: 500; color: rgba(255,255,255,0.55);
   }
 
   .viewers {
-    position: absolute; z-index: 1; top: 14px; left: 16px;
+    position: absolute; z-index: 2; top: 14px; left: 16px;
     display: flex; align-items: center;
   }
   .vav {
@@ -678,7 +690,7 @@
   }
 
   .rxns {
-    position: absolute; z-index: 1; right: 14px; bottom: 26px;
+    position: absolute; z-index: 2; right: 14px; bottom: 26px;
     display: flex; flex-direction: column; gap: 6px;
     pointer-events: none;
   }
