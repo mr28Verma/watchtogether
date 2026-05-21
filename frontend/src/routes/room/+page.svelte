@@ -4,7 +4,6 @@
   let streamInputUrl = '';
   let inviteCopied = false;
   let currentRoomUrl = '';
-  let isMobileLandscape = false;
 
   let messages = [
     { id: 1, user: 'Alex', text: 'Hey everyone! Glad you could make it.', time: '12:04' },
@@ -14,15 +13,6 @@
 
   onMount(() => {
     currentRoomUrl = window.location.href;
-    
-    const checkOrientation = () => {
-      isMobileLandscape = window.innerWidth < 768 && window.innerWidth > window.innerHeight;
-    };
-    
-    window.addEventListener('resize', checkOrientation);
-    checkOrientation();
-    
-    return () => window.removeEventListener('resize', checkOrientation);
   });
 
   function copyInviteLink() {
@@ -49,14 +39,16 @@
   function toggleFullscreenElement() {
     const player = document.querySelector('.video-canvas-viewport');
     if (!document.fullscreenElement) {
-      player.requestFullscreen?.().catch(err => alert(`Error enabling fullscreen: ${err.message}`));
+      player.requestFullscreen?.().catch(err => {
+        alert(`Error enabling fullscreen: ${err.message}`);
+      });
     } else {
       document.exitFullscreen?.();
     }
   }
 </script>
 
-<main class="workspace-viewport" class:landscape-mode={isMobileLandscape}>
+<main class="workspace-viewport">
   <div class="ambient-glow decoration-left"></div>
   <div class="ambient-glow decoration-right"></div>
   
@@ -201,7 +193,7 @@
 </main>
 
 <style>
-  /* CONFIGURATION PARAMETERS INITIALIZATION */
+  /* DESIGN CORE TOKENS */
   :root {
     --bg-dark-base: #04080e;
     --bg-dark-surface: #090f17;
@@ -233,7 +225,6 @@
     overflow: hidden;
   }
 
-  /* DECORATIVE BACKGROUND FLARES */
   .ambient-glow {
     position: absolute; width: 400px; height: 400px; border-radius: 50%;
     pointer-events: none; opacity: 0.02; filter: blur(100px); z-index: 1;
@@ -241,7 +232,6 @@
   .decoration-left { top: -100px; left: -100px; background: var(--neon-cyan); }
   .decoration-right { bottom: -100px; right: 100px; background: var(--neon-purple); }
 
-  /* NAVIGATION AND IDENTITY TOP ROW */
   .room-top-bar {
     height: 44px; padding-bottom: 8px;
     background: transparent;
@@ -261,10 +251,7 @@
     border: 1px solid rgba(244, 63, 94, 0.15); transition: all 0.2s;
   }
   .leave-room-trigger svg { width: 14px; height: 14px; }
-  .leave-room-trigger span { display: inline; font-size: 0.8rem; font-weight: 600; margin-left: 6px; }
-  .leave-room-trigger:hover { background: #f43f5e; color: #fff; border-color: #f43f5e; }
 
-  /* HUB APPARATUS CORE LAYOUT FRAMEWORK */
   .workspace-viewport {
     height: 100%;
     display: grid;
@@ -272,13 +259,11 @@
     position: relative; z-index: 2;
   }
 
-  /* VIDEO ENGINE VIEWSPACE PORT */
   .media-engine-container {
     padding: 24px; display: flex; flex-direction: column; gap: 20px;
     overflow-y: auto; height: 100%;
   }
   
-  /* SOURCE BAR MODIFIERS */
   .source-injector-card {
     background: var(--glass-opacity-bg); backdrop-filter: var(--blur-factor); -webkit-backdrop-filter: var(--blur-factor);
     border: 1px solid var(--border-faint-line); border-radius: 14px; padding: 16px;
@@ -309,7 +294,6 @@
   .pipe-btn.action-submit { margin-left: auto; background: var(--neon-cyan); color: var(--bg-dark-base); font-weight: 700; border: none; }
   .pipe-btn.action-submit:hover { opacity: 0.95; }
 
-  /* VIDEO SCREEN CANVAS ENGINE LAYER */
   .video-canvas-viewport {
     flex: 1; background: #020408; border-radius: 14px;
     border: 1px solid var(--border-faint-line); position: relative;
@@ -318,10 +302,7 @@
   }
   .canvas-blur-backing { position: absolute; inset: 0; opacity: 0.03; background: radial-gradient(circle at center, var(--neon-cyan), transparent 60%); }
   
-  /* MINIMAL CONTROL OVERLAY */
-  .canvas-control-overlay {
-    position: absolute; top: 12px; right: 12px; z-index: 5;
-  }
+  .canvas-control-overlay { position: absolute; top: 12px; right: 12px; z-index: 5; }
   .fullscreen-trigger-btn {
     background: rgba(4, 8, 14, 0.6); border: 1px solid var(--border-faint-line);
     color: var(--font-primary); border-radius: 6px; width: 32px; height: 32px;
@@ -336,13 +317,11 @@
   .canvas-empty-state h4 { font-size: 1.1rem; font-family: 'Syne', sans-serif; font-weight: 700; margin-bottom: 6px; }
   .canvas-empty-state p { font-size: 0.82rem; color: var(--font-secondary); line-height: 1.5; }
 
-  /* SIDEBAR RECEPTACLE (RIGHT) */
   .dashboard-sidebar-container {
     background: var(--bg-dark-surface); border-left: 1px solid var(--border-faint-line);
     display: flex; flex-direction: column; height: 100%; overflow: hidden;
   }
 
-  /* ACCESS MANAGER ROUTE COMPONENT */
   .invite-management-surface { padding: 20px; border-bottom: 1px solid var(--border-faint-line); }
   .surface-meta-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
   .surface-meta-header h5 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--font-secondary); }
@@ -363,7 +342,6 @@
   .copy-trigger svg { width: 10px; height: 10px; }
   .copy-trigger.copied { background: var(--neon-green); color: #fff; }
 
-  /* FEED CHAT RECEPTACLE PANEL */
   .chat-module-surface { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
   .module-navigation-tabs { padding: 14px 20px; border-bottom: 1px solid var(--border-faint-line); }
   .tab-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--font-primary); opacity: 0.8; }
@@ -395,7 +373,7 @@
   .message-dispatch-trigger svg { width: 12px; height: 12px; }
   .chat-input-wrapper input:not(:placeholder-shown) + .message-dispatch-trigger { background: var(--neon-blue); color: #fff; border-color: var(--neon-blue); }
 
-  /* RESPONSIVE PIPELINE LAYOUT RULES */
+  /* VERTICAL PORTRAIT STACKING (MOBILE PHONE LAYOUT) */
   @media (max-width: 768px) {
     .workspace-viewport {
       grid-template-columns: 1fr;
@@ -403,69 +381,55 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
-
-    .media-engine-container {
-      padding: 12px;
-      gap: 12px;
-      overflow: visible;
-      height: auto;
-    }
-
-    .room-top-bar {
-      height: 40px;
-      padding-bottom: 4px;
-    }
-    .leave-room-trigger span { display: none; } /* Hide layout breaks on mobile */
-
-    .video-canvas-viewport {
-      min-height: calc(56.25vw - 24px); /* Locks player canvas exactly to 16:9 ratio blocks */
-      border-radius: 10px;
-    }
-
+    .media-engine-container { padding: 12px; gap: 12px; overflow: visible; height: auto; }
+    .room-top-bar { height: 40px; padding-bottom: 4px; }
+    .video-canvas-viewport { min-height: calc(56.25vw - 24px); border-radius: 10px; }
     .canvas-empty-state { padding: 16px; }
     .empty-state-icon { width: 36px; height: 36px; margin-bottom: 12px; }
     .canvas-empty-state h4 { font-size: 0.95rem; }
     .canvas-empty-state p { font-size: 0.78rem; }
-
     .source-injector-card { padding: 12px; border-radius: 10px; }
     .input-row { padding: 8px 12px; margin-bottom: 8px; }
     .pipe-btn { padding: 8px 10px; font-size: 0.75rem; border-radius: 6px; }
     .pipe-btn svg { margin: 0; }
-    .pipe-btn span { display: none; } /* Drops label text so layout parameters never stretch on mobile screens */
+    .pipe-btn span { display: none; }
     .pipe-btn.action-submit span { display: inline; }
-
-    .dashboard-sidebar-container {
-      border-left: none;
-      border-top: 1px solid var(--border-faint-line);
-      height: 400px;
-      background: linear-gradient(to bottom, var(--bg-dark-surface), var(--bg-dark-base));
-    }
-
+    .dashboard-sidebar-container { border-left: none; border-top: 1px solid var(--border-faint-line); height: 400px; background: linear-gradient(to bottom, var(--bg-dark-surface), var(--bg-dark-base)); }
     .invite-management-surface { padding: 14px 16px; }
     .message-scroller-layer { padding: 14px 16px; }
     .feed-input-footer { padding: 10px 16px 16px; }
   }
 
-  /* LANDSCAPE ORIENTATION INTERVENTION */
-  @media (max-width: 920px) and (orientation: landscape) {
-    .workspace-viewport.landscape-mode {
+  /* HARDWARE LEVEL MOBILE LANDSCAPE ENGINE OVERRIDES */
+  /* Target short screen heights typical of mobile rotation paths */
+  @media (max-height: 480px) and (orientation: landscape) {
+    .workspace-viewport {
       grid-template-columns: 1fr;
       grid-template-rows: 100vh;
       overflow: hidden;
     }
-    .workspace-viewport.landscape-mode .media-engine-container {
-      padding: 0; gap: 0; height: 100%; width: 100vw;
+    .media-engine-container {
+      padding: 0 !important;
+      gap: 0 !important;
+      height: 100vh !important;
+      width: 100vw !important;
+      overflow: hidden !important;
     }
-    .workspace-viewport.landscape-mode .room-top-bar,
-    .workspace-viewport.landscape-mode .source-injector-card,
-    .workspace-viewport.landscape-mode .dashboard-sidebar-container {
-      display: none !important; /* Hide secondary structures entirely to match video stream estate space demands */
+    /* Instantly hide clutter properties during small window orientation flips */
+    .room-top-bar,
+    .source-injector-card,
+    .dashboard-sidebar-container {
+      display: none !important;
     }
-    .workspace-viewport.landscape-mode .video-canvas-viewport {
-      height: 100vh; width: 100vw; border-radius: 0; border: none;
+    .video-canvas-viewport {
+      height: 100vh !important;
+      width: 100vw !important;
+      border-radius: 0 !important;
+      border: none !important;
     }
   }
 
-  .video-canvas-viewport:fullscreen { padding: 0 !important; background: #000; }
+  /* FULL-SCREEN DOM API ATTRIBUTE HOOKS */
+  .video-canvas-viewport:fullscreen { padding: 0 !important; background: #000; border: none !important; border-radius: 0 !important; }
   .video-canvas-viewport:fullscreen .canvas-control-overlay { top: 24px; right: 24px; }
 </style>
