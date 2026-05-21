@@ -1,739 +1,164 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>StreamTogether — Watch With Everyone</title>
-  
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTgwIDE4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNIDQwLDMwIEMgLTEwLDcwIC0xMCwxMTAgNDAsMTUwIEwgODUsMTA1IEMgNjAsODUgNjAsNDUgODUsMjUgWiIgZmlsbD0iIzYzNjZmMSIvPjxwb2x5Z29uIHBvaW50cz0iMTA2LDQ2IDE4MCw4NSAxMDYsMTI0IiBmaWxsPSIjMDBmMmZlIi8+PGNpcmNsZSBjeD0iOTAiIGN5PSI4NSIgcj0iMTAiIGZpbGw9IiNmOGZhZmMiLz48L3N2Zz4=" />
-  
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<script>
+  import { onMount } from 'svelte';
 
-    :root {
-      /* Deep Midnight & Electric Neon Theme */
-      --bg-dark: #070913;
-      --bg-surface: #0f132a;
-      --bg-surface-elevated: #181d3d;
-      
-      --accent-primary: #6366f1; /* Neon Indigo */
-      --accent-primary-glow: rgba(99, 102, 241, 0.15);
-      --accent-secondary: #00f2fe; /* Cyber Cyan */
-      --accent-secondary-glow: rgba(0, 242, 254, 0.15);
-      
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --text-dim: #64748b;
-      
-      --border-glow: rgba(255, 255, 255, 0.06);
-      --border-active: rgba(99, 102, 241, 0.4);
-      
-      --gradient-brand: linear-gradient(135deg, #6366f1 0%, #00f2fe 100%);
-      --gradient-surface: linear-gradient(180deg, #111632 0%, #0b0e22 100%);
-      
-      --success: #10b981;
-      --warning: #f59e0b;
-    }
+  let navStuck = false;
 
-    html { scroll-behavior: smooth; }
+  onMount(() => {
+    const handleScroll = () => {
+      navStuck = window.scrollY > 30;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  });
 
-    body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg-dark);
-      color: var(--text-main);
-      overflow-x: hidden;
-      letter-spacing: -0.01em;
-    }
+  function handleCreate() {
+    const id = Math.random().toString(36).slice(2, 8);
+    alert('Room created!\nLink: streamtogether.app/room/' + id);
+  }
+</script>
 
-    h1, h2, h3, h4, .logo {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-
-    /* ── NAV ── */
-    nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 56px;
-      background: rgba(7, 9, 19, 0.75);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border-glow);
-    }
-    .logo {
-      display: flex; align-items: center; gap: 12px;
-      font-weight: 800; font-size: 1.4rem;
-      color: var(--text-main); text-decoration: none;
-      letter-spacing: -0.03em;
-    }
-    .logo svg {
-      width: 32px;
-      height: 32px;
-      flex-shrink: 0;
-    }
-    .nav-links { display: flex; align-items: center; gap: 32px; }
-    .nav-links a {
-      font-size: 0.95rem; font-weight: 500; color: var(--text-muted);
-      text-decoration: none; transition: color 0.2s, text-shadow 0.2s;
-    }
-    .nav-links a:hover { 
-      color: var(--text-main); 
-      text-shadow: 0 0 10px rgba(255,255,255,0.2);
-    }
-    .nav-cta {
-      background: rgba(255, 255, 255, 0.06); 
-      color: var(--text-main) !important;
-      padding: 10px 24px; border-radius: 12px;
-      font-weight: 600 !important; 
-      border: 1px solid var(--border-glow);
-      transition: all 0.2s ease !important;
-    }
-    .nav-cta:hover { 
-      background: var(--text-main) !important; 
-      color: var(--bg-dark) !important;
-      transform: translateY(-1px);
-      box-shadow: 0 8px 20px rgba(255,255,255,0.1);
-    }
-
-    /* ── HERO ── */
-    .hero {
-      min-height: 100vh;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      text-align: center; padding: 140px 24px 80px;
-      position: relative; overflow: hidden;
-    }
-    .hero-bg-blobs {
-      position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 0;
-    }
-    .blob {
-      position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.15;
-    }
-    .blob-1 {
-      width: 600px; height: 600px; top: -150px; right: -100px;
-      background: var(--accent-primary);
-      animation: float 10s ease-in-out infinite;
-    }
-    .blob-2 {
-      width: 500px; height: 500px; bottom: -100px; left: -100px;
-      background: var(--accent-secondary);
-      animation: float 14s ease-in-out infinite reverse;
-    }
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(30px, -40px) scale(1.08); }
-      66% { transform: translate(-25px, 30px) scale(0.95); }
-    }
-
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 10px;
-      background: rgba(0, 242, 254, 0.06); 
-      border: 1px solid rgba(0, 242, 254, 0.2);
-      border-radius: 100px; padding: 8px 20px 8px 12px;
-      font-size: 0.85rem; font-weight: 500; color: #a5f3fc;
-      margin-bottom: 32px; animation: fadeUp 0.6s ease both;
-      position: relative; z-index: 1;
-    }
-    .badge-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-secondary); box-shadow: 0 0 10px var(--accent-secondary); animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
-
-    .hero h1 {
-      font-weight: 800;
-      font-size: clamp(2.5rem, 6.5vw, 5.2rem);
-      line-height: 1.1; letter-spacing: -0.04em;
-      max-width: 900px; margin-bottom: 28px;
-      animation: fadeUp 0.7s ease 0.1s both;
-      position: relative; z-index: 1;
-    }
-    .hero h1 em {
-      font-style: normal;
-      background: var(--gradient-brand);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-
-    .hero-sub {
-      font-size: clamp(1rem, 3vw, 1.2rem); line-height: 1.7; color: var(--text-muted);
-      max-width: 620px; margin-bottom: 48px; font-weight: 400;
-      animation: fadeUp 0.7s ease 0.2s both;
-      position: relative; z-index: 1;
-    }
-
-    .hero-actions {
-      display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
-      margin-bottom: 80px; animation: fadeUp 0.7s ease 0.3s both;
-      position: relative; z-index: 1;
-      width: 100%;
-    }
-    .btn-primary {
-      background: var(--gradient-brand); color: #070913; border: none;
-      padding: 16px 40px; border-radius: 14px; font-size: 1rem; font-weight: 700;
-      cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
-      box-shadow: 0 8px 30px rgba(99, 102, 241, 0.3);
-      transition: all 0.2s ease;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-    }
-    .btn-primary:hover { 
-      transform: translateY(-2px); 
-      box-shadow: 0 12px 40px rgba(0, 242, 254, 0.4); 
-    }
-    .btn-secondary {
-      background: rgba(255,255,255,0.03); color: var(--text-main); border: 1px solid var(--border-glow);
-      padding: 16px 36px; border-radius: 14px; font-size: 1rem; font-weight: 600;
-      cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
-      transition: all 0.2s ease;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      backdrop-filter: blur(10px);
-    }
-    .btn-secondary:hover { 
-      border-color: rgba(255,255,255,0.2); 
-      background: rgba(255,255,255,0.06);
-      transform: translateY(-2px); 
-    }
-    
-    /* GitHub Button Variant */
-    .btn-github {
-      background: #24292e; color: #fff; border: 1px solid rgba(255,255,255,0.1);
-      padding: 16px 36px; border-radius: 14px; font-size: 1rem; font-weight: 600;
-      cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
-      transition: all 0.2s ease;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      text-decoration: none;
-    }
-    .btn-github:hover {
-      background: #2f363d;
-      border-color: rgba(255,255,255,0.25);
-      transform: translateY(-2px);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-    }
-
-    /* ── SKELETON LOADING EFFECTS ── */
-    .skeleton {
-      position: relative;
-      overflow: hidden;
-      background: #1e293b !important;
-    }
-    .skeleton::after {
-      content: "";
-      position: absolute;
-      top: 0; right: 0; bottom: 0; left: 0;
-      transform: translateX(-100%);
-      background: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 0.05) 20%,
-        rgba(255, 255, 255, 0.1) 60%,
-        rgba(255, 255, 255, 0) 100%
-      );
-      animation: shimmer 2s infinite;
-    }
-    @keyframes shimmer {
-      100% { transform: translateX(100%); }
-    }
-
-    .skeleton-text {
-      height: 12px;
-      border-radius: 4px;
-      background: #1e293b;
-      margin-bottom: 8px;
-    }
-    .skeleton-text.w-70 { width: 70%; }
-    .skeleton-text.w-50 { width: 50%; }
-    .skeleton-text.w-30 { width: 30%; }
-
-    /* ── HERO PREVIEW ── */
-    .hero-preview {
-      width: min(1000px, 100%); position: relative;
-      animation: fadeUp 0.8s ease 0.4s both;
-      z-index: 1;
-    }
-    .preview-card {
-      background: var(--bg-surface); border-radius: 24px;
-      box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 4px 24px rgba(99,102,241,0.05);
-      overflow: hidden; border: 1px solid var(--border-glow);
-    }
-    .preview-topbar {
-      display: flex; align-items: center; gap: 8px; padding: 16px 24px;
-      background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-glow);
-      overflow: hidden;
-    }
-    .preview-topbar span {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .topbar-dot { width: 12px; height: 12px; border-radius: 50%; opacity: 0.7; flex-shrink: 0; }
-    .preview-body { display: grid; grid-template-columns: 1fr 320px; }
-    
-    .preview-video {
-      aspect-ratio: 16/9; position: relative; background: #02040a;
-      overflow: hidden; display: flex; align-items: center; justify-content: center;
-    }
-    .video-placeholder {
-      width: 100%; height: 100%; padding: 16px;
-      background: linear-gradient(135deg, #0b0f19 0%, #171d31 100%);
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
-    }
-    .play-btn {
-      width: 68px; height: 68px; border-radius: 50%;
-      background: var(--gradient-brand);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.4rem; color: #070913; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer;
-    }
-    .play-btn:hover { transform: scale(1.1); box-shadow: 0 0 40px rgba(0,242,254,0.6); }
-    .video-title { color: var(--text-main); font-size: 0.95rem; font-weight: 500; text-align: center; }
-    .video-progress {
-      position: absolute; bottom: 0; left: 0; right: 0; height: 4px;
-    }
-    .video-progress-bar {
-      height: 100%; width: 42%; background: var(--accent-secondary);
-      box-shadow: 0 0 10px var(--accent-secondary);
-    }
-    
-    .preview-sidebar {
-      background: rgba(255,255,255,0.01); border-left: 1px solid var(--border-glow);
-      display: flex; flex-direction: column;
-    }
-    .sidebar-header {
-      padding: 16px 20px; border-bottom: 1px solid var(--border-glow);
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .sidebar-header span { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
-    .online-count { background: rgba(16, 185, 129, 0.1); color: var(--success); font-size: 0.8rem; font-weight: 600; padding: 4px 12px; border-radius: 100px; border: 1px solid rgba(16, 185, 129, 0.2); }
-    
-    .chat-messages { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 14px; overflow: hidden; }
-    .chat-msg { display: flex; gap: 12px; align-items: flex-start; }
-    .avatar {
-      width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
-      font-size: 0.8rem; color: #fff; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .msg-content { flex: 1; }
-    .msg-name { font-size: 0.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px; }
-    .msg-text { font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; text-align: left; }
-    
-    .chat-input {
-      padding: 16px; border-top: 1px solid var(--border-glow);
-      display: flex; gap: 10px; align-items: center;
-    }
-    .chat-input input {
-      flex: 1; border: 1px solid var(--border-glow); border-radius: 12px;
-      padding: 10px 16px; font-size: 0.88rem; background: var(--bg-surface-elevated); outline: none;
-      font-family: 'Inter', sans-serif; color: var(--text-main);
-      transition: border-color 0.2s;
-    }
-    .chat-input input:focus { border-color: var(--accent-primary); }
-    .chat-send {
-      width: 38px; height: 38px; border-radius: 12px; background: var(--accent-primary);
-      border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
-      color: white; font-size: 0.9rem; transition: background 0.2s;
-    }
-    .chat-send:hover { background: #4f46e5; }
-    
-    .preview-reactions {
-      position: absolute; right: 340px; bottom: 24px;
-      display: flex; flex-direction: column; gap: 8px; pointer-events: none;
-    }
-    .reaction-bubble {
-      background: var(--bg-surface-elevated); border-radius: 12px; padding: 6px 14px;
-      font-size: 0.88rem; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-      border: 1px solid var(--border-glow);
-      animation: floatUp 3s ease infinite;
-      display: flex; align-items: center; gap: 6px; color: var(--text-main);
-      white-space: nowrap;
-    }
-    .reaction-bubble:nth-child(2) { animation-delay: 0.8s; }
-    .reaction-bubble:nth-child(3) { animation-delay: 1.6s; }
-    @keyframes floatUp {
-      0%   { opacity:0; transform:translateY(15px); }
-      15%  { opacity:1; }
-      85%  { opacity:1; }
-      100% { opacity:0; transform:translateY(-45px); }
-    }
-
-    /* ── CONCEPT / VALUE STRIP ── */
-    .social-strip {
-      background: rgba(15, 19, 42, 0.4); border-top: 1px solid var(--border-glow); border-bottom: 1px solid var(--border-glow);
-      padding: 32px 56px;
-      display: flex; align-items: center; justify-content: center; gap: 64px;
-      overflow: hidden; backdrop-filter: blur(10px);
-    }
-    .social-item { display: flex; align-items: center; gap: 14px; white-space: nowrap; }
-    .social-num { font-size: 1.35rem; color: var(--text-main); font-weight: 700; display: flex; align-items: center; }
-    .social-label { font-size: 0.92rem; color: var(--text-muted); font-weight: 500; }
-    .social-divider { width: 1px; height: 32px; background: var(--border-glow); }
-
-    /* ── FEATURES ── */
-    .section { padding: 120px 56px; position: relative; }
-    .section-label {
-      display: inline-block; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.15em;
-      text-transform: uppercase; background: var(--gradient-brand); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 16px;
-    }
-    .section-title {
-      font-weight: 800;
-      font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.15;
-      letter-spacing: -0.03em; margin-bottom: 20px;
-    }
-    .section-sub { font-size: 1.15rem; color: var(--text-muted); line-height: 1.7; max-width: 540px; font-weight: 400; }
-
-    .features-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 64px;
-    }
-    .feature-card {
-      background: var(--gradient-surface); border-radius: 24px; padding: 40px;
-      border: 1px solid var(--border-glow);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative; overflow: hidden;
-      text-align: left;
-    }
-    .feature-card:hover { 
-      transform: translateY(-8px); 
-      border-color: var(--border-active);
-      box-shadow: 0 20px 40px rgba(99, 102, 241, 0.1);
-    }
-    
-    .feature-icon {
-      width: 56px; height: 56px; border-radius: 16px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.5rem; margin-bottom: 28px; transition: transform 0.3s ease;
-    }
-    .feature-card:hover .feature-icon { transform: scale(1.1) rotate(4deg); }
-    
-    .ic-coral { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-    .ic-teal  { background: rgba(0, 242, 254, 0.1); color: var(--accent-secondary); }
-    .ic-purple{ background: rgba(99, 102, 241, 0.1); color: var(--accent-primary); }
-    .ic-gold  { background: rgba(245, 166, 35, 0.1); color: var(--warning); }
-
-    .feature-card h3 {
-      font-weight: 700; font-size: 1.25rem;
-      margin-bottom: 12px; color: var(--text-main);
-    }
-    .feature-card p {
-      font-size: 0.95rem; color: var(--text-muted); line-height: 1.65;
-    }
-
-    /* ── HOW IT WORKS ── */
-    .how-section {
-      background: #0b0e22; border-top: 1px solid var(--border-glow); border-bottom: 1px solid var(--border-glow); padding: 120px 56px;
-    }
-
-    .steps-row {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px; margin-top: 72px;
-      position: relative;
-    }
-    .steps-row::before {
-      content: ''; position: absolute; top: 32px; left: 15%; right: 15%; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.2) 20%, rgba(99, 102, 241, 0.2) 80%, transparent);
-    }
-    .step { text-align: center; position: relative; }
-    .step-num {
-      width: 64px; height: 64px; border-radius: 20px; margin: 0 auto 28px;
-      background: var(--bg-surface-elevated); border: 1px solid var(--border-glow);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 1.2rem; color: var(--accent-secondary);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-      transition: all 0.3s ease;
-    }
-    .step:hover .step-num {
-      border-color: var(--accent-secondary);
-      box-shadow: 0 0 20px var(--accent-secondary-glow);
-      transform: translateY(-2px);
-    }
-    .step h3 { font-weight: 700; font-size: 1.25rem; margin-bottom: 12px; color: var(--text-main); }
-    .step p  { font-size: 0.95rem; color: var(--text-muted); line-height: 1.7; }
-
-    /* ── SOURCES ── */
-    .sources-section { padding: 120px 56px; }
-    .sources-grid {
-      display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 64px;
-      max-width: 900px; margin-left: auto; margin-right: auto;
-    }
-    .source-pill {
-      display: flex; align-items: center; gap: 12px;
-      background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: 14px;
-      padding: 14px 24px; font-weight: 600; font-size: 0.95rem; color: var(--text-main);
-      transition: all 0.2s ease;
-      cursor: default;
-    }
-    .source-pill:hover {
-      border-color: var(--text-muted);
-      transform: translateY(-2px);
-      background: var(--bg-surface-elevated);
-    }
-    .source-icon { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
-
-    /* ── TESTIMONIALS ── */
-    .testimonials-section { padding: 120px 56px; background: linear-gradient(180deg, var(--bg-dark) 0%, #090c1a 100%); }
-    .testimonials-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 64px;
-    }
-    .testi-card {
-      background: var(--bg-surface); border-radius: 24px; padding: 36px;
-      border: 1px solid var(--border-glow);
-      transition: all 0.25s ease;
-    }
-    .testi-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.15); }
-    .testi-stars { color: var(--warning); font-size: 0.9rem; margin-bottom: 18px; letter-spacing: 2px; }
-    .testi-text { font-size: 1rem; line-height: 1.7; color: var(--text-muted); margin-bottom: 24px; font-style: italic; }
-    .testi-author { display: flex; align-items: center; gap: 14px; }
-    .testi-avatar {
-      width: 40px; height: 40px; border-radius: 12px;
-      font-size: 0.85rem; color: white; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .testi-name { font-weight: 700; font-size: 0.95rem; color: var(--text-main); }
-    .testi-handle { font-size: 0.8rem; color: var(--text-dim); margin-top: 1px; }
-
-    /* ── CTA ── */
-    .cta-section {
-      margin: 80px 56px; border-radius: 32px;
-      background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent), var(--gradient-surface);
-      padding: 96px 32px; text-align: center; position: relative; overflow: hidden;
-      border: 1px solid var(--border-glow);
-      box-shadow: 0 40px 80px rgba(0,0,0,0.4);
-    }
-    .cta-section h2 {
-      font-weight: 800;
-      font-size: clamp(2rem, 5vw, 3.5rem); color: var(--text-main); margin-bottom: 20px;
-      position: relative; z-index: 1; letter-spacing: -0.03em;
-    }
-    .cta-section p {
-      color: var(--text-muted); font-size: 1.2rem; margin-bottom: 44px;
-      position: relative; z-index: 1; max-width: 520px; margin-left: auto; margin-right: auto; line-height: 1.6;
-    }
-    .cta-actions { display: flex; gap: 16px; justify-content: center; position: relative; z-index: 1; flex-wrap: wrap; }
-    .btn-white {
-      background: var(--text-main); color: var(--bg-dark); border: none;
-      padding: 16px 40px; border-radius: 14px; font-size: 1rem; font-weight: 700;
-      cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
-      transition: all 0.2s ease;
-      box-shadow: 0 8px 24px rgba(255,255,255,0.1);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .btn-white:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(255,255,255,0.2); }
-    .btn-outline-white {
-      background: transparent; color: var(--text-main); border: 1px solid rgba(255,255,255,0.15);
-      padding: 16px 36px; border-radius: 14px; font-size: 1rem; font-weight: 600;
-      cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
-      transition: all 0.2s ease;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .btn-outline-white:hover { border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.02); transform: translateY(-2px); }
-
-    /* ── FOOTER ── */
-    footer {
-      border-top: 1px solid var(--border-glow); padding: 64px 56px 40px; background: #04060d;
-    }
-    .footer-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 64px; }
-    .footer-brand p { font-size: 0.95rem; color: var(--text-muted); margin-top: 14px; max-width: 260px; line-height: 1.6; }
-    .footer-cols { display: flex; gap: 80px; }
-    .footer-col h4 { font-size: 0.9rem; font-weight: 700; color: var(--text-main); margin-bottom: 20px; letter-spacing: 0.05em; text-transform: uppercase; }
-    .footer-col a { display: block; font-size: 0.92rem; color: var(--text-muted); text-decoration: none; margin-bottom: 12px; transition: color 0.2s; }
-    .footer-col a:hover { color: var(--accent-secondary); }
-    .footer-bottom {
-      display: flex; justify-content: space-between; align-items: center;
-      padding-top: 32px; border-top: 1px solid var(--border-glow);
-    }
-    .footer-bottom p { font-size: 0.88rem; color: var(--text-dim); }
-    .footer-socials { display: flex; gap: 12px; }
-    .social-btn {
-      width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,0.02);
-      border: 1px solid var(--border-glow); display: flex; align-items: center; justify-content: center;
-      font-size: 0.95rem; cursor: pointer; transition: all 0.2s ease;
-      text-decoration: none; color: var(--text-muted);
-    }
-    .social-btn:hover { border-color: var(--text-muted); color: var(--text-main); transform: translateY(-2px); }
-
-    /* ── RESPONSIVE & MOBILE UX REFACTOR ── */
-    @media (max-width: 1024px) {
-      .preview-body { grid-template-columns: 1fr; }
-      .preview-sidebar { border-left: none; border-top: 1px solid var(--border-glow); max-height: 400px; }
-      .preview-reactions { right: 24px; bottom: auto; top: 24px; }
-    }
-
-    @media (max-width: 900px) {
-      nav { padding: 16px 24px; }
-      .nav-links { display: none; }
-      .section, .sources-section, .testimonials-section, .how-section { padding: 80px 24px; }
-      .features-grid, .testimonials-grid, .steps-row { grid-template-columns: 1fr; gap: 24px; }
-      .steps-row::before { display: none; }
-      .social-strip { padding: 32px 24px; gap: 24px; flex-wrap: wrap; justify-content: grid; grid-template-columns: repeat(2, 1fr); }
-      .social-divider { display: none; }
-      .cta-section { margin: 40px 24px; padding: 64px 24px; }
-      .footer-top { flex-direction: column; gap: 48px; }
-      .footer-cols { flex-direction: row; flex-wrap: wrap; gap: 40px; justify-content: space-between; width: 100%; }
-      .footer-bottom { flex-direction: column; gap: 24px; text-align: center; }
-    }
-
-    @media (max-width: 600px) {
-      nav { padding: 12px 16px; }
-      .logo { font-size: 1.2rem; gap: 8px; }
-      
-      .hero { padding: 120px 16px 60px; }
-      .hero-badge { font-size: 0.75rem; padding: 6px 14px 6px 10px; margin-bottom: 24px; }
-      .hero h1 { margin-bottom: 16px; }
-      .hero-sub { margin-bottom: 32px; }
-      
-      .hero-actions { flex-direction: column; gap: 12px; width: 100%; max-width: 320px; }
-      .btn-primary, .btn-github, .btn-white, .btn-outline-white { width: 100%; padding: 14px 24px; font-size: 0.95rem; border-radius: 12px; }
-      
-      .preview-card { border-radius: 16px; }
-      .preview-topbar { padding: 12px 16px; font-size: 0.75rem; }
-      .video-placeholder { padding: 24px 16px; gap: 12px; }
-      .play-btn { width: 52px; height: 52px; font-size: 1.1rem; }
-      .video-title { font-size: 0.85rem; }
-      .preview-reactions { display: none; } 
-      .preview-sidebar { display: flex; max-height: 320px; }
-      .chat-messages { padding: 16px; gap: 10px; }
-      .chat-input { padding: 12px; }
-      .chat-input input { padding: 8px 12px; font-size: 0.8rem; border-radius: 10px; }
-      .chat-send { width: 34px; height: 34px; border-radius: 10px; }
-      
-      .social-strip { grid-template-columns: 1fr; gap: 20px; padding: 24px 16px; }
-      .social-item { gap: 10px; }
-      .social-num { font-size: 1.15rem; }
-      .social-label { font-size: 0.85rem; }
-
-      .section, .sources-section, .testimonials-section, .how-section { padding: 60px 16px; }
-      .section-title { margin-bottom: 12px; }
-      .section-sub { font-size: 1rem; line-height: 1.6; }
-      
-      .features-grid { margin-top: 40px; gap: 16px; }
-      .feature-card { padding: 24px; border-radius: 16px; }
-      .feature-icon { width: 44px; height: 44px; border-radius: 12px; font-size: 1.25rem; margin-bottom: 20px; }
-      .feature-card h3 { font-size: 1.15rem; }
-      .feature-card p { font-size: 0.88rem; line-height: 1.5; }
-      
-      .steps-row { margin-top: 40px; gap: 32px; }
-      .step-num { width: 52px; height: 52px; border-radius: 14px; margin-bottom: 16px; font-size: 1.1rem; }
-      .step h3 { font-size: 1.15rem; }
-      .step p { font-size: 0.88rem; }
-      
-      .sources-grid { margin-top: 36px; gap: 8px; }
-      .source-pill { padding: 10px 16px; font-size: 0.85rem; border-radius: 10px; gap: 8px; }
-      .source-icon { width: 20px; height: 20px; font-size: 0.75rem; }
-      
-      .testimonials-section .testimonials-grid { margin-top: 40px; gap: 16px; }
-      .testi-card { padding: 24px; border-radius: 16px; }
-      .testi-text { font-size: 0.92rem; margin-bottom: 16px; }
-      
-      .cta-section { margin: 32px 16px; padding: 48px 16px; border-radius: 20px; }
-      .cta-actions { flex-direction: column; gap: 12px; width: 100%; max-width: 280px; margin: 0 auto; }
-      
-      footer { padding: 48px 16px 32px; }
-      .footer-cols { grid-template-columns: 1fr; gap: 32px; }
-      .footer-col h4 { margin-bottom: 12px; }
-      .footer-col a { margin-bottom: 8px; font-size: 0.88rem; }
-    }
-  </style>
-</head>
-<body>
-
-<nav>
-  <a href="#" class="logo">
+<!-- NAV -->
+<nav id="nav" class:stuck={navStuck}>
+  <a href="#" class="brand">
     <svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
-      <path d="M 40,30 C -10,70 -10,110 40,150 L 85,105 C 60,85 60,45 85,25 Z" fill="#6366f1" />
-      <polygon points="106,46 180,85 106,124" fill="#00f2fe" />
-      <circle cx="90" cy="85" r="10" fill="#f8fafc" />
+      <path d="M40,30 C-10,70 -10,110 40,150 L85,105 C60,85 60,45 85,25Z" fill="#7c6fff"/>
+      <polygon points="106,46 180,85 106,124" fill="#2dd4bf"/>
+      <circle cx="90" cy="85" r="10" fill="#edf0f8"/>
     </svg>
     StreamTogether
   </a>
-  <div class="nav-links">
-    <a href="#features">Features</a>
-    <a href="#how">How it works</a>
-    <a href="#sources">Platforms</a>
-    <a href="https://github.com/mr28Verma/watchtogether" target="_blank" style="display: inline-flex; align-items: center; gap: 6px;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+  <div class="nav-r">
+    <a href="#features" class="nav-link">Features</a>
+    <a href="#how" class="nav-link">How it works</a>
+    <a href="https://github.com/mr28Verma/watchtogether" target="_blank" class="nav-gh">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.79-.26.79-.58v-2.23c-3.34.72-4.03-1.42-4.03-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.49 1 .11-.78.42-1.31.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.19.69.8.58C20.56 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/>
+      </svg>
       GitHub
     </a>
     <a href="#" class="nav-cta">Launch App</a>
   </div>
 </nav>
 
+<!-- HERO -->
 <section class="hero">
-  <div class="hero-bg-blobs">
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-  </div>
+  <div class="hero-dots"></div>
+  <div class="glow g1"></div>
+  <div class="glow g2"></div>
 
-  <div class="hero-badge">
-    <div class="badge-dot"></div>
-    Open-source WebRTC protocol enabled
-  </div>
+  <div class="hero-inner">
+    <div class="eyebrow">
+      <div class="eyebrow-dot"></div>
+      Open-source · WebRTC · Zero signup
+    </div>
 
-  <h1>Watch anything,<br /><em>together</em>, in sync.</h1>
-  <p class="hero-sub">Create a room in seconds. Share the link. Stream YouTube, your own files, or launch a shared browser — everyone stays perfectly synced in real time.</p>
+    <h1>
+      Watch anything<br />
+      <span class="h1-accent">together, in sync.</span>
+    </h1>
 
-  <div class="hero-actions">
-    <button class="btn-primary">▶ &nbsp;Create a Room</button>
-    <a href="https://github.com/mr28Verma/watchtogether" target="_blank" class="btn-github">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle;"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-      View on GitHub
-    </a>
-  </div>
+    <p class="hero-sub">
+      Create a room in seconds. Share the link. Stream YouTube, local files, or a shared browser — everyone stays perfectly synced in real time.
+    </p>
 
-  <div class="hero-preview">
-    <div class="preview-card">
-      <div class="preview-topbar">
-        <div class="topbar-dot" style="background:#ef4444;"></div>
-        <div class="topbar-dot" style="background:#f59e0b;"></div>
-        <div class="topbar-dot" style="background:#10b981;"></div>
-        <span style="margin-left:12px;font-size:0.85rem;color:var(--text-muted);font-weight:500;">streamtogether.app/room/movie-night</span>
-      </div>
-      <div class="preview-body">
-        <div class="preview-video">
-          <div class="video-placeholder">
-            <div class="play-btn">▶</div>
-            <p class="video-title">Interstellar (2014) — 4K HDR stream</p>
+    <div class="hero-cta">
+      <button class="btn-primary" on:click={handleCreate}>
+        <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Create a Room
+      </button>
+      <a href="https://github.com/mr28Verma/watchtogether" target="_blank" class="btn-ghost">
+        <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.79-.26.79-.58v-2.23c-3.34.72-4.03-1.42-4.03-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.49 1 .11-.78.42-1.31.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.19.69.8.58C20.56 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+
+    <!-- BROWSER MOCKUP -->
+    <div class="mockup-outer">
+      <div class="browser">
+        <div class="browser-bar">
+          <div class="win-dots">
+            <div class="wd" style="background:#ef4444;"></div>
+            <div class="wd" style="background:#f59e0b;"></div>
+            <div class="wd" style="background:#22c55e;"></div>
           </div>
-          <div class="video-progress">
-            <div class="video-progress-bar"></div>
+          <div class="urlbar">
+            <div class="urlbar-inner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              streamtogether.app/room/movie-night
+            </div>
           </div>
-          <div class="preview-reactions">
-            <div class="reaction-bubble">😮 Mind-blown!</div>
-            <div class="reaction-bubble">🔥 Best scene ever</div>
-            <div class="reaction-bubble">😂 lol same</div>
-          </div>
+          <div style="width:72px;"></div>
         </div>
-        <div class="preview-sidebar">
-          <div class="sidebar-header">
-            <span>Live Chat</span>
-            <div class="online-count">● 8 online</div>
-          </div>
-          <div class="chat-messages">
-            <div class="chat-msg">
-              <div class="avatar" style="background:#6366f1;">A</div>
-              <div class="msg-content">
-                <div class="msg-name">Alex</div>
-                <div class="msg-text">This part always gets me 😭</div>
-              </div>
+        <div class="browser-body">
+          <!-- VIDEO -->
+          <div class="vpane">
+            <div class="vbg"></div>
+            <div class="play-btn">
+              <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             </div>
-            <div class="chat-msg">
-              <div class="avatar" style="background:#a855f7;">S</div>
-              <div class="msg-content">
-                <div class="msg-name">Sophie</div>
-                <div class="msg-text">Same! Nolan is an absolute genius</div>
-              </div>
+            <div class="movie-label">Interstellar (2014) — 4K HDR</div>
+            <div class="viewers">
+              <div class="vav" style="background:#7c6fff;">A</div>
+              <div class="vav" style="background:#a855f7;">S</div>
+              <div class="vav" style="background:#f59e0b;">M</div>
+              <div class="vav" style="background:#ef4444;">R</div>
+              <div class="vcount">+4 watching</div>
             </div>
-            
-            <div class="chat-msg">
-              <div class="avatar skeleton"></div>
-              <div class="msg-content">
-                <div class="skeleton-text w-30 skeleton"></div>
-                <div class="skeleton-text w-70 skeleton"></div>
-              </div>
+            <div class="scrubber">
+              <div class="scrub-track"><div class="scrub-fill"></div></div>
+              <div class="scrub-head"></div>
             </div>
-
-            <div class="chat-msg">
-              <div class="avatar" style="background:#f59e0b;">M</div>
-              <div class="msg-content">
-                <div class="msg-name">Max</div>
-                <div class="msg-text">😂 go go go we'll wait!</div>
-              </div>
+            <div class="rxns">
+              <div class="rxn">mind blown</div>
+              <div class="rxn">best scene ever</div>
+              <div class="rxn">same, lol</div>
             </div>
           </div>
-          <div class="chat-input">
-            <input type="text" placeholder="Say something..." />
-            <button class="chat-send">➤</button>
+          <!-- CHAT -->
+          <div class="chat">
+            <div class="chat-head">
+              <span class="chat-title">Live Chat</span>
+              <div class="online-badge"><div class="ob-dot"></div>8 online</div>
+            </div>
+            <div class="msgs">
+              <div class="msg">
+                <div class="av" style="background:#7c6fff;">A</div>
+                <div class="mc">
+                  <div class="mn">Alex</div>
+                  <div class="mt">This part always gets me</div>
+                </div>
+              </div>
+              <div class="msg">
+                <div class="av" style="background:#a855f7;">S</div>
+                <div class="mc">
+                  <div class="mn">Sophie</div>
+                  <div class="mt">Nolan is an absolute genius</div>
+                </div>
+              </div>
+              <div class="msg">
+                <div class="sk sk-av"></div>
+                <div class="mc">
+                  <div class="sk sk-ln" style="width:38%;"></div>
+                  <div class="sk sk-ln" style="width:65%;"></div>
+                </div>
+              </div>
+              <div class="msg">
+                <div class="av" style="background:#f59e0b;">M</div>
+                <div class="mc">
+                  <div class="mn">Max</div>
+                  <div class="mt">pause! we'll wait haha</div>
+                </div>
+              </div>
+            </div>
+            <div class="chat-input">
+              <input type="text" placeholder="Say something…" />
+              <button class="send">
+                <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"/></svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -741,182 +166,194 @@
   </div>
 </section>
 
-<div class="social-strip">
-  <div class="social-item">
-    <span class="social-num">⚡ &nbsp; 0ms</span>
-    <span class="social-label">Perceived Delay</span>
+<!-- STRIP -->
+<div class="strip">
+  <div class="stat">
+    <div class="stat-n">&lt;<span>5</span>ms</div>
+    <div class="stat-l">Sync delay across all viewers</div>
   </div>
-  <div class="social-item">
-    <span class="social-num">🔒 &nbsp; E2E</span>
-    <span class="social-label">Private Rooms</span>
+  <div class="stat">
+    <div class="stat-n">E2E</div>
+    <div class="stat-l">End-to-end encrypted rooms</div>
   </div>
-  <div class="social-item">
-    <span class="social-num">🛠 &nbsp; Pure CSS</span>
-    <span class="social-label">Light Layout</span>
+  <div class="stat">
+    <div class="stat-n">0</div>
+    <div class="stat-l">Downloads or extensions needed</div>
   </div>
-  <div class="social-item">
-    <span class="social-num">🍿 &nbsp; Zero Ads</span>
-    <span class="social-label">Clean Interface</span>
+  <div class="stat">
+    <div class="stat-n">Free</div>
+    <div class="stat-l">No paywalls, ever</div>
   </div>
 </div>
 
+<!-- FEATURES -->
 <section class="section" id="features">
-  <div style="max-width:1200px; margin:0 auto;">
-    <span class="section-label">Features</span>
-    <h2 class="section-title">Everything you need for<br />the perfect watch night</h2>
-    <p class="section-sub">No downloads, no extensions, no sign-ups required. Just seamless sync directly in your modern web browser.</p>
+  <div class="section-inner">
+    <span class="tag">Features</span>
+    <h2 class="section-h">Everything for the perfect<br />watch night</h2>
+    <p class="section-sub">No sign-ups, no extensions. Seamless sync straight from your browser.</p>
 
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon ic-coral">🔗</div>
-        <h3>Instant Setup</h3>
-        <p>Generate a shareable room link in one click. Your friends join instantly from any phone, tablet, or laptop.</p>
+    <div class="feat-mosaic">
+      <div class="feat-card fc-1">
+        <div class="feat-icon" style="background:rgba(124,111,255,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#7c6fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+            <polyline points="13 2 13 9 20 9"/>
+          </svg>
+        </div>
+        <h3>Instant Room Setup</h3>
+        <p>One click generates a unique room link. Friends join from any phone, tablet, or laptop — no friction, no accounts.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon ic-teal">⚡</div>
+
+      <div class="feat-card fc-2">
+        <div class="feat-icon" style="background:rgba(45,212,191,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="13 2 13 9 20 9"/>
+            <polygon points="23 7 16 12 23 17 23 7"/>
+            <path d="M2 2l20 20"/>
+          </svg>
+        </div>
         <h3>Flawless Sync</h3>
-        <p>Play, pause, seek — every click is instantly mirrored to all viewers. Nobody gets left behind or accidentally spoiled.</p>
+        <p>Play, pause, seek — every action is instantly mirrored across all viewers. Nobody gets left behind or accidentally spoiled.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon ic-purple">💬</div>
+
+      <div class="feat-card fc-3">
+        <div class="feat-icon" style="background:rgba(168,85,247,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
         <h3>Live Chat</h3>
-        <p>Chat seamlessly, react with fast floating emojis, and share the collective hype as the story unfolds.</p>
+        <p>Real-time messages and reactions as the story unfolds.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon ic-gold">🌐</div>
+
+      <div class="feat-card fc-4">
+        <div class="feat-icon" style="background:rgba(251,191,36,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        </div>
         <h3>Cloud Browser</h3>
-        <p>Stream premium services like Netflix, Disney+, or Hulu safely through a lightning-fast virtual cloud session.</p>
+        <p>Stream Netflix, Hulu, Disney+ via a virtual cloud session.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon ic-coral">📁</div>
-        <h3>Local Files</h3>
-        <p>Have local video files saved on your desktop? Simply stream them directly to the room with zero lag or delay.</p>
+
+      <div class="feat-card fc-5">
+        <div class="feat-icon" style="background:rgba(239,68,68,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.41a16 16 0 0 0 6 6l.94-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+        </div>
+        <h3>Voice Chat</h3>
+        <p>Built-in group voice with near-zero latency.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon ic-teal">🎤</div>
-        <h3>Integrated Audio</h3>
-        <p>Hear each other laugh, gasp, and comment out loud with built-in latency-optimized group voice chat options.</p>
+
+      <div class="feat-card fc-6">
+        <div class="fc-6-text">
+          <div class="feat-badge">Local files</div>
+          <h3>Stream directly from your desktop</h3>
+          <p>Have a movie saved locally? Just drop it into the room and stream it live to every viewer with zero upload lag or quality loss.</p>
+        </div>
+        <div class="feat-mini-browser">
+          <div class="fmb-bar">
+            <div class="fmbd" style="background:#ef4444;"></div>
+            <div class="fmbd" style="background:#f59e0b;"></div>
+            <div class="fmbd" style="background:#22c55e;"></div>
+          </div>
+          <div class="fmb-body">
+            <div class="fmb-row">
+              <div class="fmb-av" style="background:#7c6fff;"></div>
+              <div class="fmb-lines">
+                <div class="fmb-line" style="width:55%;"></div>
+                <div class="fmb-line lit" style="width:80%;"></div>
+              </div>
+            </div>
+            <div class="fmb-row">
+              <div class="fmb-av" style="background:#a855f7;"></div>
+              <div class="fmb-lines">
+                <div class="fmb-line" style="width:40%;"></div>
+                <div class="fmb-line" style="width:65%;"></div>
+              </div>
+            </div>
+            <div class="fmb-row">
+              <div class="fmb-av sk" style="width:24px;height:24px;border-radius:6px;flex-shrink:0;"></div>
+              <div class="fmb-lines">
+                <div class="fmb-line sk" style="width:45%;"></div>
+                <div class="fmb-line sk" style="width:70%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
+<!-- HOW IT WORKS -->
 <section class="how-section" id="how">
-  <div style="max-width:1200px; margin:0 auto;">
-    <span class="section-label">Frictionless Flow</span>
-    <h2 class="section-title">Watch together in<br />three effortless steps</h2>
-    <p class="section-sub">We’ve removed every roadblock. No setups, no configuration, just instant streaming entertainment.</p>
-    <div class="steps-row">
+  <div class="section-inner">
+    <span class="tag">How it works</span>
+    <h2 class="section-h">Up and watching in<br />three steps</h2>
+    <p class="section-sub">No config. No installs. Just streaming.</p>
+    <div class="steps">
       <div class="step">
         <div class="step-num">01</div>
-        <h3>Launch Your Room</h3>
-        <p>Hit the action button and your private streaming arena is generated instantly. The unique link is auto-copied.</p>
+        <h3>Create your room</h3>
+        <p>Hit the button. Your private streaming room is generated instantly with a unique shareable link — auto-copied to clipboard.</p>
       </div>
       <div class="step">
         <div class="step-num">02</div>
-        <h3>Invite Your Crew</h3>
-        <p>Drop the link into your group chat. Friends click and hop straight in — no account setups required.</p>
+        <h3>Invite your crew</h3>
+        <p>Drop the link in your group chat. Friends click and join immediately — no account or install required on their end.</p>
       </div>
       <div class="step">
         <div class="step-num">03</div>
-        <h3>Stream & Enjoy</h3>
-        <p>Paste a video link, start the cloud browser, or play a video file. Sit back and watch it unfold in perfect symmetry.</p>
+        <h3>Stream and enjoy</h3>
+        <p>Hit play. Everyone stays in perfect sync while the live chat fills with reactions in real time.</p>
       </div>
     </div>
   </div>
 </section>
 
-<section class="sources-section" id="sources" style="text-align:center;">
-  <span class="section-label">Compatibility</span>
-  <h2 class="section-title">Stream from any platform</h2>
-  <p class="section-sub" style="margin:0 auto;">Stream safely from your favorite media portals or natively broadcast your own private archives.</p>
-  <div class="sources-grid">
-    <div class="source-pill"><div class="source-icon" style="background:#ff0000;color:white;">▶</div> YouTube</div>
-    <div class="source-pill"><div class="source-icon" style="background:#e50914;color:white;font-size:0.65rem;font-weight:700;">N</div> Netflix</div>
-    <div class="source-pill"><div class="source-icon" style="background:#113ccf;color:white;font-size:0.6rem;font-weight:700;">D+</div> Disney+</div>
-    <div class="source-pill"><div class="source-icon" style="background:#1ce783;color:#1a1a1a;font-size:0.7rem;font-weight:700;">H</div> Hulu</div>
-    <div class="source-pill"><div class="source-icon" style="background:#6441a5;color:white;font-size:0.75rem;">⬛</div> Twitch</div>
-    <div class="source-pill"><div class="source-icon" style="background:#f47521;color:white;">🎞</div> Plex</div>
-    <div class="source-pill"><div class="source-icon" style="background:#003087;color:white;font-size:0.6rem;font-weight:700;">A</div> Prime Video</div>
-    <div class="source-pill"><div class="source-icon" style="background:rgba(255,255,255,0.1);color:white;font-size:0.8rem;">📁</div> Your Files</div>
-    <div class="source-pill"><div class="source-icon" style="background:rgba(0, 242, 254, 0.2);color:var(--accent-secondary);font-size:0.8rem;">🌐</div> Any Website</div>
-  </div>
-</section>
-
-<section class="testimonials-section">
-  <div style="max-width:1200px; margin:0 auto; text-align:center;">
-    <span class="section-label">User Praise</span>
-    <h2 class="section-title">What the community says</h2>
-    <div class="testimonials-grid" style="text-align:left; margin-top:64px;">
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
-        <p class="testi-text">"Used this every single weekend during long distance. The sync latency is non-existent — it genuinely feels like we are on the exact same sofa."</p>
-        <div class="testi-author">
-          <div class="testi-avatar" style="background:var(--accent-primary);">P</div>
-          <div>
-            <div class="testi-name">Priya M.</div>
-            <div class="testi-handle">@priyawatch</div>
-          </div>
-        </div>
-      </div>
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
-        <p class="testi-text">"Our whole discord group uses it for casual watch parties now. Zero layout hassle — copy a link and start rolling. Chat implementation is incredibly clean."</p>
-        <div class="testi-author">
-          <div class="testi-avatar" style="background:#a855f7;">D</div>
-          <div>
-            <div class="testi-name">David K.</div>
-            <div class="testi-handle">@davidcodes</div>
-          </div>
-        </div>
-      </div>
-      <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
-        <p class="testi-text">"I teach remote film history classes and utilize this web app to critique layouts with students. Shared instant live feedback is absolute gold."</p>
-        <div class="testi-author">
-          <div class="testi-avatar" style="background:var(--accent-secondary);color:#070913;">L</div>
-          <div>
-            <div class="testi-name">Prof. Laura S.</div>
-            <div class="testi-handle">Film Studies Faculty</div>
-          </div>
-        </div>
-      </div>
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-box">
+    <span class="tag">Get started</span>
+    <h2>Your next watch night<br />starts right now.</h2>
+    <p>No credit cards, no logins, no paywalls. Launch a secure room and start watching in under 5 seconds.</p>
+    <div class="cta-btns">
+      <button class="btn-cta" on:click={handleCreate}>
+        <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Create a Free Room
+      </button>
+      <a href="https://github.com/mr28Verma/watchtogether" target="_blank" class="btn-cta-ghost">
+        <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.79-.26.79-.58v-2.23c-3.34.72-4.03-1.42-4.03-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.49 1 .11-.78.42-1.31.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.19.69.8.58C20.56 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        Star on GitHub
+      </a>
     </div>
   </div>
 </section>
 
-<div class="cta-section">
-  <span class="section-label">Get Started</span>
-  <h2>Your next dynamic movie night<br />starts right now.</h2>
-  <p>No credit cards, no logins, no paywalls. Launch a completely secure room and begin watching within 5 seconds.</p>
-  <div class="cta-actions">
-    <button class="btn-white">▶ Create a Free Room</button>
-    <a href="https://github.com/mr28Verma/watchtogether" target="_blank" class="btn-outline-white" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-      Star on GitHub
-    </a>
-  </div>
-</div>
-
+<!-- FOOTER -->
 <footer>
   <div class="footer-top">
-    <div class="footer-brand">
-      <a href="#" class="logo">
-        <svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
-          <path d="M 40,30 C -10,70 -10,110 40,150 L 85,105 C 60,85 60,45 85,25 Z" fill="#6366f1" />
-          <polygon points="106,46 180,85 106,124" fill="#00f2fe" />
-          <circle cx="90" cy="85" r="10" fill="#f8fafc" />
+    <div class="footer-about">
+      <a href="#" class="brand">
+        <svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <path d="M40,30 C-10,70 -10,110 40,150 L85,105 C60,85 60,45 85,25Z" fill="#7c6fff"/>
+          <polygon points="106,46 180,85 106,124" fill="#2dd4bf"/>
+          <circle cx="90" cy="85" r="10" fill="#edf0f8"/>
         </svg>
         StreamTogether
       </a>
-      <p>Watch premium media synchronised perfectly with anyone, anywhere. Free forever.</p>
+      <p>Watch anything with anyone, perfectly in sync. Free, open-source, forever.</p>
     </div>
     <div class="footer-cols">
       <div class="footer-col">
         <h4>Product</h4>
         <a href="#">Features</a>
         <a href="#">How it works</a>
-        <a href="#">Platforms</a>
         <a href="#">Changelog</a>
       </div>
       <div class="footer-col">
@@ -929,20 +366,663 @@
         <h4>Legal</h4>
         <a href="#">Privacy Policy</a>
         <a href="#">Terms of Use</a>
-        <a href="#">Cookie settings</a>
+        <a href="#">Cookies</a>
       </div>
     </div>
   </div>
   <div class="footer-bottom">
-    <p>© 2026 StreamTogether. All rights reserved.</p>
-    <div class="footer-socials">
-      <a class="social-btn" href="https://github.com/mr28Verma/watchtogether" target="_blank" title="GitHub">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+    <span class="footer-copy">© 2026 StreamTogether. All rights reserved.</span>
+    <div class="socials">
+      <a class="soc" href="https://github.com/mr28Verma/watchtogether" target="_blank" title="GitHub">
+        <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.79-.26.79-.58v-2.23c-3.34.72-4.03-1.42-4.03-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.49 1 .11-.78.42-1.31.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.19.69.8.58C20.56 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
       </a>
-      <a class="social-btn" href="https://www.linkedin.com/in/saksham-verma-9275b631b/">in</a>
+      <a class="soc" href="https://www.linkedin.com/in/saksham-verma-9275b631b/" target="_blank" title="LinkedIn" style="font-size:0.78rem;font-weight:700;font-family:'Cabinet Grotesk',sans-serif;">in</a>
     </div>
   </div>
 </footer>
 
-</body>
-</html>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@700;800;900&family=Instrument+Sans:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :global(:root) {
+    --ink:      #09090f;
+    --ink-1:    #0f1020;
+    --ink-2:    #161829;
+    --ink-3:    #1e2138;
+    --violet:   #7c6fff;
+    --violet-d: #5b4fe8;
+    --violet-g: rgba(124,111,255,0.18);
+    --aqua:     #2dd4bf;
+    --aqua-g:   rgba(45,212,191,0.12);
+    --text:     #edf0f8;
+    --muted:    #7880a0;
+    --faint:    #3a3f60;
+    --line:     rgba(255,255,255,0.07);
+    --line-md:  rgba(255,255,255,0.12);
+  }
+
+  :global(html) { scroll-behavior: smooth; }
+  :global(body) {
+    font-family: 'Instrument Sans', sans-serif;
+    background: var(--ink);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+  :global(h1), :global(h2), :global(h3), .brand { font-family: 'Cabinet Grotesk', sans-serif; }
+
+  /* grain overlay */
+  :global(body)::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)'/%3E%3C/svg%3E");
+  }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 60px;
+    background: rgba(9,9,15,0.55);
+    backdrop-filter: blur(22px);
+    border-bottom: 1px solid var(--line);
+    transition: padding 0.3s ease, background 0.3s ease;
+  }
+  nav.stuck { padding: 12px 60px; background: rgba(9,9,15,0.88); }
+
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 1.25rem; font-weight: 800; letter-spacing: -0.03em;
+    color: var(--text); text-decoration: none;
+  }
+  .brand svg { width: 28px; height: 28px; flex-shrink: 0; }
+
+  .nav-r { display: flex; align-items: center; gap: 6px; }
+  .nav-link {
+    font-size: 0.87rem; font-weight: 500; color: var(--muted);
+    text-decoration: none; padding: 8px 14px; border-radius: 8px;
+    transition: color 0.2s, background 0.2s;
+  }
+  .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .nav-gh {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.87rem; font-weight: 500; color: var(--muted);
+    text-decoration: none; padding: 8px 14px; border-radius: 8px;
+    transition: color 0.2s, background 0.2s;
+  }
+  .nav-gh:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .nav-cta {
+    background: var(--violet); color: #fff;
+    padding: 9px 22px; border-radius: 100px;
+    font-size: 0.87rem; font-weight: 600; text-decoration: none;
+    transition: opacity 0.2s, transform 0.2s;
+    box-shadow: 0 0 28px rgba(124,111,255,0.32);
+  }
+  .nav-cta:hover { opacity: 0.85; transform: translateY(-1px); }
+
+  /* ─── HERO ─── */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 160px 24px 80px;
+    text-align: center;
+    position: relative; overflow: hidden;
+  }
+
+  .hero-dots {
+    position: absolute; inset: 0; pointer-events: none;
+    background-image: radial-gradient(circle, rgba(124,111,255,0.16) 1px, transparent 1px);
+    background-size: 34px 34px;
+    mask-image: radial-gradient(ellipse 80% 65% at 50% 40%, black 15%, transparent 80%);
+  }
+
+  .glow {
+    position: absolute; pointer-events: none; border-radius: 50%;
+    filter: blur(90px);
+  }
+  .g1 { width: 700px; height: 700px; top: -200px; left: -150px; background: rgba(124,111,255,0.11); animation: drift 14s ease-in-out infinite; }
+  .g2 { width: 500px; height: 500px; bottom: -80px; right: -100px; background: rgba(45,212,191,0.07); animation: drift 18s ease-in-out infinite reverse; }
+
+  @keyframes drift { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,-40px)} }
+
+  .hero-inner { position: relative; z-index: 1; max-width: 840px; }
+
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid rgba(45,212,191,0.25);
+    background: rgba(45,212,191,0.06);
+    border-radius: 100px; padding: 6px 16px 6px 10px;
+    font-size: 0.75rem; font-weight: 600; color: #5eead4;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    margin-bottom: 36px;
+    animation: rise 0.55s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .eyebrow-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--aqua);
+    animation: blink 2.2s ease infinite;
+  }
+  @keyframes blink {
+    0%,100%{ opacity:1; box-shadow:0 0 0 0 rgba(45,212,191,0.6) }
+    50%{ opacity:0.4; box-shadow:0 0 0 5px rgba(45,212,191,0) }
+  }
+
+  h1 {
+    font-size: clamp(3rem, 7.5vw, 6rem);
+    font-weight: 900; line-height: 0.96;
+    letter-spacing: -0.05em;
+    margin-bottom: 28px;
+    animation: rise 0.6s cubic-bezier(0.22,1,0.36,1) 0.07s both;
+  }
+  .h1-accent {
+    display: block;
+    background: linear-gradient(115deg, #a78bfa 0%, var(--violet) 35%, var(--aqua) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+
+  .hero-sub {
+    font-size: clamp(1rem, 2.4vw, 1.15rem);
+    color: var(--muted); line-height: 1.75;
+    max-width: 500px; margin: 0 auto 52px;
+    animation: rise 0.6s cubic-bezier(0.22,1,0.36,1) 0.14s both;
+  }
+
+  .hero-cta {
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+    margin-bottom: 80px;
+    animation: rise 0.6s cubic-bezier(0.22,1,0.36,1) 0.21s both;
+  }
+
+  .btn-primary {
+    background: var(--violet); color: #fff; border: none;
+    padding: 14px 34px; border-radius: 100px;
+    font-size: 0.95rem; font-weight: 600;
+    cursor: pointer; font-family: 'Instrument Sans', sans-serif;
+    display: flex; align-items: center; gap: 9px;
+    box-shadow: 0 0 40px rgba(124,111,255,0.38);
+    transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+  }
+  .btn-primary:hover { opacity: 0.87; transform: translateY(-2px); box-shadow: 0 10px 44px rgba(124,111,255,0.48); }
+  .btn-primary svg { width: 14px; height: 14px; fill: #fff; }
+
+  .btn-ghost {
+    background: rgba(255,255,255,0.04); color: var(--muted);
+    border: 1px solid var(--line-md);
+    padding: 14px 28px; border-radius: 100px;
+    font-size: 0.95rem; font-weight: 500;
+    cursor: pointer; font-family: 'Instrument Sans', sans-serif;
+    display: flex; align-items: center; gap: 8px;
+    text-decoration: none; transition: all 0.2s;
+  }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.22); color: var(--text); background: rgba(255,255,255,0.06); }
+  .btn-ghost svg { width: 16px; height: 16px; fill: currentColor; }
+
+  @keyframes rise { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ─── BROWSER MOCKUP ─── */
+  .mockup-outer {
+    position: relative; z-index: 1;
+    width: min(980px, 100%);
+    animation: rise 0.7s cubic-bezier(0.22,1,0.36,1) 0.28s both;
+  }
+  .mockup-outer::before {
+    content: ''; position: absolute; inset: -1px;
+    border-radius: 21px;
+    background: linear-gradient(135deg, rgba(124,111,255,0.55) 0%, rgba(45,212,191,0.3) 50%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .browser {
+    position: relative;
+    background: var(--ink-1); border-radius: 20px;
+    border: 1px solid var(--line); overflow: hidden;
+    box-shadow: 0 60px 120px rgba(0,0,0,0.7);
+  }
+
+  .browser-bar {
+    display: flex; align-items: center; gap: 0;
+    padding: 13px 18px;
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid var(--line);
+  }
+  .win-dots { display: flex; gap: 6px; margin-right: 14px; }
+  .wd { width: 11px; height: 11px; border-radius: 50%; }
+  .urlbar { flex: 1; display: flex; justify-content: center; }
+  .urlbar-inner {
+    background: rgba(255,255,255,0.04); border: 1px solid var(--line);
+    border-radius: 8px; padding: 5px 14px;
+    font-size: 0.78rem; color: var(--faint);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .urlbar-inner svg { width: 10px; height: 10px; opacity: 0.5; }
+
+  .browser-body { display: grid; grid-template-columns: 1fr 290px; }
+
+  .vpane {
+    aspect-ratio: 16/9;
+    background: #03050d;
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .vbg {
+    position: absolute; inset: 0;
+    background: linear-gradient(170deg, #060e1f 0%, #0b1628 55%, #040a14 100%);
+  }
+  .vbg::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(1px 1px at 18% 24%, rgba(255,255,255,0.5) 0, transparent 100%),
+      radial-gradient(1px 1px at 72% 12%, rgba(255,255,255,0.35) 0, transparent 100%),
+      radial-gradient(2px 2px at 89% 58%, rgba(255,255,255,0.3) 0, transparent 100%),
+      radial-gradient(1px 1px at 44% 76%, rgba(255,255,255,0.25) 0, transparent 100%),
+      radial-gradient(1px 1px at 8%  65%, rgba(255,255,255,0.4) 0, transparent 100%),
+      radial-gradient(1px 1px at 55% 38%, rgba(255,255,255,0.2) 0, transparent 100%);
+  }
+  .play-btn {
+    position: relative; z-index: 1;
+    width: 68px; height: 68px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--violet), var(--aqua));
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 0 50px rgba(124,111,255,0.4);
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .play-btn::before {
+    content: ''; position: absolute; inset: -4px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--violet), var(--aqua));
+    opacity: 0.25; animation: ripple 2.6s ease-in-out infinite;
+  }
+  @keyframes ripple { 0%,100%{transform:scale(1);opacity:0.25} 50%{transform:scale(1.3);opacity:0} }
+  .play-btn:hover { transform: scale(1.1); }
+  .play-btn svg { width: 24px; height: 24px; fill: #fff; margin-left: 4px; }
+
+  .movie-label {
+    position: absolute; z-index: 1; bottom: 40px;
+    font-size: 0.82rem; font-weight: 500; color: rgba(255,255,255,0.55);
+  }
+
+  .viewers {
+    position: absolute; z-index: 1; top: 14px; left: 16px;
+    display: flex; align-items: center;
+  }
+  .vav {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 2px solid var(--ink-1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.62rem; font-weight: 700; color: #fff;
+    margin-left: -7px;
+  }
+  .vav:first-child { margin-left: 0; }
+  .vcount {
+    margin-left: 8px;
+    background: rgba(0,0,0,0.65); border: 1px solid var(--line-md);
+    border-radius: 100px; padding: 3px 10px;
+    font-size: 0.72rem; color: var(--muted);
+    backdrop-filter: blur(10px);
+  }
+
+  .scrubber { position: absolute; bottom: 0; left: 0; right: 0; }
+  .scrub-track { height: 3px; background: rgba(255,255,255,0.07); }
+  .scrub-fill {
+    height: 100%; width: 38%;
+    background: linear-gradient(90deg, var(--violet), var(--aqua));
+  }
+  .scrub-head {
+    position: absolute; top: -4px; left: 38%; transform: translateX(-50%);
+    width: 11px; height: 11px; border-radius: 50%; background: #fff;
+    box-shadow: 0 0 10px rgba(124,111,255,0.8);
+  }
+
+  .rxns {
+    position: absolute; z-index: 1; right: 14px; bottom: 26px;
+    display: flex; flex-direction: column; gap: 6px;
+    pointer-events: none;
+  }
+  .rxn {
+    background: rgba(10,11,20,0.8); border: 1px solid var(--line-md);
+    border-radius: 100px; padding: 5px 12px;
+    font-size: 0.78rem; color: var(--text);
+    backdrop-filter: blur(12px);
+    animation: rxnfloat 3.8s ease infinite;
+  }
+  .rxn:nth-child(2) { animation-delay: 1.3s; }
+  .rxn:nth-child(3) { animation-delay: 2.6s; }
+  @keyframes rxnfloat {
+    0%   { opacity:0; transform:translateY(10px); }
+    12%  { opacity:1; }
+    82%  { opacity:1; }
+    100% { opacity:0; transform:translateY(-40px); }
+  }
+
+  .chat {
+    display: flex; flex-direction: column;
+    background: var(--ink-2); border-left: 1px solid var(--line);
+  }
+  .chat-head {
+    padding: 13px 17px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .chat-title { font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .online-badge {
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(45,212,191,0.08); border: 1px solid rgba(45,212,191,0.2);
+    border-radius: 100px; padding: 3px 10px;
+    font-size: 0.7rem; font-weight: 600; color: #5eead4;
+  }
+  .ob-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--aqua); animation: blink 2s infinite; }
+
+  .msgs { flex: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+  .msg { display: flex; gap: 10px; align-items: flex-start; }
+  .av {
+    width: 27px; height: 27px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; font-weight: 700; color: #fff;
+  }
+  .mc { flex: 1; min-width: 0; }
+  .mn { font-size: 0.75rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .mt { font-size: 0.8rem; color: var(--muted); line-height: 1.45; text-align: left; }
+
+  .sk { background: var(--ink-3); border-radius: 6px; position: relative; overflow: hidden; }
+  .sk::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg,transparent,rgba(255,255,255,0.045),transparent);
+    animation: shimmer 1.9s infinite;
+  }
+  @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+  .sk-av { width: 27px; height: 27px; border-radius: 8px; flex-shrink: 0; }
+  .sk-ln { height: 9px; border-radius: 4px; margin-bottom: 5px; }
+
+  .chat-input {
+    padding: 11px; border-top: 1px solid var(--line);
+    display: flex; gap: 8px;
+  }
+  .chat-input input {
+    flex: 1; background: var(--ink-3); border: 1px solid var(--line);
+    border-radius: 9px; padding: 8px 13px;
+    font-size: 0.8rem; color: var(--text); outline: none;
+    font-family: 'Instrument Sans', sans-serif;
+    transition: border-color 0.2s;
+  }
+  .chat-input input::placeholder { color: var(--faint); }
+  .chat-input input:focus { border-color: rgba(124,111,255,0.4); }
+  .send {
+    width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+    background: var(--violet); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.2s;
+  }
+  .send:hover { opacity: 0.84; }
+  .send svg { width: 14px; height: 14px; fill: #fff; }
+
+  /* ─── STRIP ─── */
+  .strip {
+    display: grid; grid-template-columns: repeat(4,1fr);
+    background: var(--ink-1);
+    border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  }
+  .stat {
+    padding: 30px 36px;
+    border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; gap: 6px;
+    transition: background 0.2s;
+  }
+  .stat:last-child { border-right: none; }
+  .stat:hover { background: rgba(255,255,255,0.015); }
+  .stat-n {
+    font-family: 'Cabinet Grotesk', sans-serif;
+    font-size: 1.6rem; font-weight: 800; letter-spacing: -0.04em;
+    color: var(--text);
+  }
+  .stat-n span { color: var(--violet); }
+  .stat-l { font-size: 0.83rem; color: var(--muted); line-height: 1.4; }
+
+  /* ─── SECTION COMMONS ─── */
+  .section { padding: 120px 60px; }
+  .section-inner { max-width: 1140px; margin: 0 auto; }
+  .tag {
+    display: inline-block; font-size: 0.73rem; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--violet); margin-bottom: 16px;
+  }
+  .section-h {
+    font-size: clamp(2rem, 4.2vw, 3rem); font-weight: 800;
+    letter-spacing: -0.035em; line-height: 1.08; margin-bottom: 16px;
+  }
+  .section-sub { font-size: 1.02rem; color: var(--muted); line-height: 1.75; max-width: 480px; }
+
+  /* ─── FEATURES ─── */
+  .feat-mosaic {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 2px;
+    margin-top: 60px;
+    background: var(--line);
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .feat-card {
+    background: var(--ink-1); padding: 36px 32px;
+    transition: background 0.25s;
+    cursor: default;
+  }
+  .feat-card:hover { background: var(--ink-2); }
+
+  .fc-1 { grid-column: span 3; }
+  .fc-2 { grid-column: span 3; }
+  .fc-3 { grid-column: span 2; }
+  .fc-4 { grid-column: span 2; }
+  .fc-5 { grid-column: span 2; }
+  .fc-6 { grid-column: span 6; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 40px; }
+
+  .feat-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    border: 1px solid var(--line-md);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 24px;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), border-color 0.25s;
+  }
+  .feat-card:hover .feat-icon { transform: scale(1.1) rotate(4deg); border-color: var(--violet-g); }
+  .feat-icon svg { width: 20px; height: 20px; }
+
+  .feat-card h3 { font-size: 1.08rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 10px; }
+  .feat-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.65; }
+
+  .fc-6-text .feat-badge {
+    display: inline-block; background: var(--violet-g); color: #a78bfa;
+    border: 1px solid rgba(124,111,255,0.25);
+    border-radius: 100px; padding: 4px 14px;
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em;
+    text-transform: uppercase; margin-bottom: 16px;
+  }
+  .fc-6-text h3 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 12px; }
+  .fc-6-text p { font-size: 0.92rem; color: var(--muted); line-height: 1.7; max-width: 360px; }
+
+  .feat-mini-browser {
+    background: var(--ink); border-radius: 12px;
+    border: 1px solid var(--line-md); overflow: hidden;
+  }
+  .fmb-bar {
+    display: flex; align-items: center; gap: 5px; padding: 10px 14px;
+    background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--line);
+  }
+  .fmbd { width: 8px; height: 8px; border-radius: 50%; }
+  .fmb-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .fmb-row { display: flex; align-items: center; gap: 10px; }
+  .fmb-av { width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0; }
+  .fmb-lines { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .fmb-line { height: 8px; border-radius: 3px; background: var(--ink-3); }
+  .fmb-line.lit { background: var(--violet-g); }
+
+  /* ─── HOW IT WORKS ─── */
+  .how-section {
+    background: var(--ink-1);
+    border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    padding: 120px 60px;
+  }
+  .steps {
+    display: grid; grid-template-columns: repeat(3,1fr);
+    gap: 0; margin-top: 72px; position: relative;
+  }
+  .steps::before {
+    content: ''; position: absolute; top: 29px; left: 12%; right: 12%; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(124,111,255,0.3) 30%, rgba(124,111,255,0.3) 70%, transparent);
+  }
+  .step { padding: 0 32px; text-align: center; }
+  .step-num {
+    width: 58px; height: 58px; border-radius: 16px;
+    background: var(--ink-2); border: 1px solid var(--line-md);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cabinet Grotesk', sans-serif; font-weight: 800; font-size: 1.1rem;
+    color: var(--aqua); margin: 0 auto 24px; position: relative; z-index: 1;
+    transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+  }
+  .step:hover .step-num {
+    border-color: var(--aqua);
+    box-shadow: 0 0 22px rgba(45,212,191,0.16);
+    transform: translateY(-3px);
+  }
+  .step h3 { font-size: 1.12rem; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.02em; }
+  .step p { font-size: 0.88rem; color: var(--muted); line-height: 1.7; }
+
+  /* ─── CTA ─── */
+  .cta-section { padding: 80px 60px 100px; }
+  .cta-box {
+    max-width: 1140px; margin: 0 auto;
+    border-radius: 24px;
+    background: var(--ink-1); border: 1px solid var(--line);
+    padding: 100px 40px; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .cta-box::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 50% 70% at 50% -5%, rgba(124,111,255,0.13), transparent),
+      radial-gradient(ellipse 30% 40% at 85% 100%, rgba(45,212,191,0.06), transparent);
+    pointer-events: none;
+  }
+  .cta-box::after {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse 75% 80% at 50% 50%, black 25%, transparent 80%);
+    pointer-events: none;
+  }
+  .cta-box h2 {
+    font-size: clamp(2rem, 5vw, 3.6rem); font-weight: 900;
+    letter-spacing: -0.04em; margin-bottom: 18px;
+    position: relative; z-index: 1;
+  }
+  .cta-box p {
+    color: var(--muted); font-size: 1.05rem; line-height: 1.7;
+    max-width: 440px; margin: 0 auto 44px;
+    position: relative; z-index: 1;
+  }
+  .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; position: relative; z-index: 1; }
+  .btn-cta {
+    background: var(--text); color: var(--ink); border: none;
+    padding: 14px 36px; border-radius: 100px;
+    font-size: 0.95rem; font-weight: 700;
+    cursor: pointer; font-family: 'Instrument Sans', sans-serif;
+    transition: opacity 0.2s, transform 0.2s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .btn-cta:hover { opacity: 0.88; transform: translateY(-2px); }
+  .btn-cta svg { width: 14px; height: 14px; fill: var(--ink); }
+  .btn-cta-ghost {
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--line-md);
+    padding: 14px 30px; border-radius: 100px;
+    font-size: 0.95rem; font-weight: 500;
+    cursor: pointer; font-family: 'Instrument Sans', sans-serif;
+    display: flex; align-items: center; gap: 8px;
+    text-decoration: none; transition: all 0.2s;
+  }
+  .btn-cta-ghost:hover { border-color: rgba(255,255,255,0.22); color: var(--text); }
+  .btn-cta-ghost svg { width: 16px; height: 16px; fill: currentColor; }
+
+  /* ─── FOOTER ─── */
+  footer {
+    border-top: 1px solid var(--line); padding: 60px 60px 36px;
+    background: var(--ink);
+  }
+  .footer-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 52px;
+  }
+  .footer-about p { font-size: 0.87rem; color: var(--muted); margin-top: 12px; max-width: 230px; line-height: 1.65; }
+  .footer-cols { display: flex; gap: 72px; }
+  .footer-col h4 {
+    font-size: 0.75rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 18px;
+  }
+  .footer-col a {
+    display: block; font-size: 0.87rem; color: var(--faint);
+    text-decoration: none; margin-bottom: 10px; transition: color 0.2s;
+  }
+  .footer-col a:hover { color: var(--aqua); }
+  .footer-bottom {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 28px; border-top: 1px solid var(--line);
+  }
+  .footer-copy { font-size: 0.82rem; color: var(--faint); }
+  .socials { display: flex; gap: 8px; }
+  .soc {
+    width: 34px; height: 34px; border-radius: 9px;
+    border: 1px solid var(--line); background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--faint); text-decoration: none;
+    transition: all 0.2s;
+  }
+  .soc:hover { border-color: var(--line-md); color: var(--text); background: rgba(255,255,255,0.03); }
+  .soc svg { width: 15px; height: 15px; fill: currentColor; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 1024px) {
+    .feat-mosaic { grid-template-columns: repeat(2,1fr); }
+    .fc-1,.fc-2,.fc-3,.fc-4,.fc-5 { grid-column: span 1; }
+    .fc-6 { grid-column: span 2; }
+    .browser-body { grid-template-columns: 1fr; }
+    .chat { border-left: none; border-top: 1px solid var(--line); max-height: 300px; }
+    .rxns { display: none; }
+  }
+  @media (max-width: 900px) {
+    nav { padding: 14px 24px; }
+    nav.stuck { padding: 10px 24px; }
+    .nav-r .nav-link { display: none; }
+    .nav-r .nav-gh { display: none; }
+    .section, .how-section, .cta-section { padding: 80px 24px; }
+    .strip { grid-template-columns: repeat(2,1fr); }
+    .stat:nth-child(2) { border-right: none; }
+    .stat:nth-child(3) { border-top: 1px solid var(--line); }
+    .steps { grid-template-columns: 1fr; gap: 40px; }
+    .steps::before { display: none; }
+    .footer-top { flex-direction: column; gap: 40px; }
+    .footer-cols { flex-wrap: wrap; gap: 40px; }
+    .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
+    .fc-6 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    nav { padding: 12px 16px; }
+    .hero { padding: 120px 16px 60px; }
+    .hero-cta { flex-direction: column; align-items: center; }
+    .btn-primary, .btn-ghost { width: 100%; max-width: 280px; justify-content: center; }
+    .strip { grid-template-columns: 1fr; }
+    .stat { border-right: none; border-bottom: 1px solid var(--line); }
+    .stat:last-child { border-bottom: none; }
+    .section, .how-section, .cta-section { padding: 60px 16px; }
+    .feat-mosaic { grid-template-columns: 1fr; }
+    .fc-1,.fc-2,.fc-3,.fc-4,.fc-5,.fc-6 { grid-column: span 1; }
+    .cta-section { padding: 40px 16px 60px; }
+    .cta-btns { flex-direction: column; align-items: center; }
+    .btn-cta, .btn-cta-ghost { width: 100%; max-width: 260px; justify-content: center; }
+    footer { padding: 48px 16px 28px; }
+    .footer-cols { flex-direction: column; gap: 32px; }
+  }
+</style>
