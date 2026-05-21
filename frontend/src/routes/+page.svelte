@@ -13,7 +13,7 @@
 
   function handleCreate() {
     const id = Math.random().toString(36).slice(2, 8);
-    alert('Room created!\nLink: streamtogether.app/room/' + id);
+    alert('Room created!\nLink: watchTogether.app/room/' + id);
   }
 </script>
 
@@ -25,7 +25,7 @@
       <polygon points="106,46 180,85 106,124" fill="#2dd4bf"/>
       <circle cx="90" cy="85" r="10" fill="#edf0f8"/>
     </svg>
-    StreamTogether
+    WatchTogether
   </a>
   <div class="nav-r">
     <a href="#features" class="nav-link">Features</a>
@@ -87,7 +87,7 @@
                 <rect x="3" y="11" width="18" height="11" rx="2"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
-              streamtogether.app/room/movie-night
+              watchTogether.app/room/movie-night
             </div>
           </div>
           <div style="width:72px;"></div>
@@ -345,7 +345,7 @@
           <polygon points="106,46 180,85 106,124" fill="#2dd4bf"/>
           <circle cx="90" cy="85" r="10" fill="#edf0f8"/>
         </svg>
-        StreamTogether
+        WatchTogether
       </a>
       <p>Watch anything with anyone, perfectly in sync. Free, open-source, forever.</p>
     </div>
@@ -371,7 +371,7 @@
     </div>
   </div>
   <div class="footer-bottom">
-    <span class="footer-copy">© 2026 StreamTogether. All rights reserved.</span>
+    <span class="footer-copy">© 2026 WatchTogether. All rights reserved.</span>
     <div class="socials">
       <a class="soc" href="https://github.com/mr28Verma/watchtogether" target="_blank" title="GitHub">
         <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.79-.26.79-.58v-2.23c-3.34.72-4.03-1.42-4.03-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.49 1 .11-.78.42-1.31.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.19.69.8.58C20.56 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
