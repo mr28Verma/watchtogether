@@ -14,8 +14,7 @@
 
   function handleCreate() {
     const id = Math.random().toString(36).slice(2, 8);
-    //window.location.href = '/room/' + id;
-    window.location.href = '/room';
+    window.location.href = '/room/' + id;
   }
 </script>
 
