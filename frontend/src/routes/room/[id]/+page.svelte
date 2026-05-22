@@ -3,42 +3,156 @@
   import { socket } from "$lib/socket";
 
   let streamInputUrl = "";
-  let inviteCopied = false;
+  let currentVideoUrl = $state("");
+  let inviteCopied = $state(false);
   let isMobileLandscape = false;
   let roomId = "";
   let roomLink = "";
 
-  let messages = [
-    {
-      id: 1,
-      user: "dudiya",
-      text: "🍿 Yo! Pass the digital popcorn. What are we watching?",
-      time: "12:04",
-      isHost: true,
-    },
-    {
-      id: 2,
-      user: "Biahri",
-      text: "Nolan marathon or sci-fi nights? Let's drop the magnet link!",
-      time: "12:05",
-      isHost: false,
-    },
-  ];
-  let newMessage = "";
+  let player;
+  let playerReady = false;
+  let isSyncing = false;
 
-  // Set the values immediately before mounting to prevent "Generating link..." from showing
+  // Username and Auth states
+  let username = $state("");
+  let isUsernameSubmitted = $state(false);
+  let checkingAuth = $state(true);
+
+  // Core persistence states
+  let isCreator = $state(false);
+  let messages = $state([]);
+  let newMessage = $state("");
+  let connectedCount = $state(1);
+
+  // Initialize context and sync with localStorage safely before mounting
   if (typeof window !== "undefined") {
+    const savedName = localStorage.getItem("watchtogether_user");
+    if (savedName) {
+      username = savedName;
+      isUsernameSubmitted = true;
+    }
+    checkingAuth = false;
+
     const segments = window.location.pathname.split("/").filter(Boolean);
     const pathRoomId = segments[segments.length - 1];
+
     roomId = pathRoomId || "ouxz40";
     roomLink = `${window.location.origin}/room/${roomId}`;
+
+    // Host persistence: Check if this tab session was flagged as the creator
+    const sessionCreatorKey = `watchtogether_creator_${roomId}`;
+    if (
+      sessionStorage.getItem(sessionCreatorKey) === "true" ||
+      !pathRoomId ||
+      pathRoomId === "room"
+    ) {
+      isCreator = true;
+      sessionStorage.setItem(sessionCreatorKey, "true");
+    }
+
+    // Message persistence: Hydrate past room message logs
+    const savedMessages = localStorage.getItem(
+      `watchtogether_messages_${roomId}`,
+    );
+    if (savedMessages) {
+      try {
+        messages = JSON.parse(savedMessages);
+      } catch (e) {
+        console.error("Failed to restore message cache:", e);
+      }
+    }
   }
 
   onMount(() => {
-    socket.emit("join-room", roomId);
+    if (socket.disconnected) {
+      socket.connect();
+    }
 
-    socket.on("user-joined", () => {
-      console.log("Another user joined");
+    const tag = document.createElement("script");
+
+    tag.src = "https://www.youtube.com/iframe_api";
+
+    document.body.appendChild(tag);
+
+    socket.on("connect", () => {
+      console.log("CONNECTED:", socket.id);
+
+      socket.emit("join-room", roomId);
+
+      setTimeout(() => {
+        socket.emit("request-presence", { roomId });
+      }, 500);
+    });
+
+    socket.on("connect_error", (err) => {
+      console.log("SOCKET ERROR:", err.message);
+    });
+
+    // Handle real-time user count sync from server rooms
+    socket.on("room-presence", (data) => {
+      connectedCount = data.count;
+    });
+
+    socket.on("video-synced", (data) => {
+  currentVideoUrl = data.videoUrl;
+
+  const videoId = extractYoutubeVideoId(data.videoUrl);
+
+  // Wait for DOM update
+  setTimeout(() => {
+    createYoutubePlayer(videoId);
+  }, 200);
+});
+
+    socket.on("video-play", (data) => {
+      if (!playerReady || !player) return;
+
+      isSyncing = true;
+
+      player.seekTo(data.time, true);
+      player.playVideo();
+
+      setTimeout(() => {
+        isSyncing = false;
+      }, 800);
+    });
+
+    socket.on("video-pause", (data) => {
+      if (!playerReady || !player) return;
+
+      isSyncing = true;
+
+      player.seekTo(data.time, true);
+      player.pauseVideo();
+
+      setTimeout(() => {
+        isSyncing = false;
+      }, 800);
+    });
+
+    socket.on("receive-message", (data) => {
+      messages = [
+        ...messages,
+        {
+          id: Date.now() + Math.random(),
+          user: data.user,
+          text: data.text,
+          time: data.time,
+          isHost: data.isHost ?? false,
+        },
+      ];
+
+      localStorage.setItem(
+        `watchtogether_messages_${roomId}`,
+        JSON.stringify(messages),
+      );
+
+      setTimeout(() => {
+        const scroller = document.querySelector(".message-scroller-layer");
+        if (scroller) {
+          scroller.scrollTop = scroller.scrollHeight;
+        }
+      }, 50);
     });
 
     const checkOrientation = () => {
@@ -49,16 +163,34 @@
     window.addEventListener("resize", checkOrientation);
     checkOrientation();
 
+    setTimeout(() => {
+      const scroller = document.querySelector(".message-scroller-layer");
+      if (scroller) scroller.scrollTop = scroller.scrollHeight;
+    }, 100);
+
     return () => {
       window.removeEventListener("resize", checkOrientation);
+      socket.off("connect");
+      socket.off("connect_error");
       socket.off("user-joined");
+      socket.off("user-left");
+      socket.off("receive-message");
+      socket.off("room-presence");
+      socket.off("video-synced");
+      socket.off("video-play");
+      socket.off("video-pause");
     };
   });
+
+  function handleUsernameSubmit() {
+    if (!username.trim()) return;
+    localStorage.setItem("watchtogether_user", username.trim());
+    isUsernameSubmitted = true;
+  }
 
   async function copyInvite() {
     if (!roomLink) return;
 
-    // Primary: modern Clipboard API
     if (navigator.clipboard && navigator.clipboard.writeText) {
       try {
         await navigator.clipboard.writeText(roomLink);
@@ -69,11 +201,11 @@
       }
     }
 
-    // Fallback: execCommand
     try {
       const textarea = document.createElement("textarea");
       textarea.value = roomLink;
-      textarea.style.cssText = "position:fixed;top:-9999px;left:-9999px;opacity:0";
+      textarea.style.cssText =
+        "position:fixed;top:-9999px;left:-9999px;opacity:0";
       document.body.appendChild(textarea);
       textarea.focus();
       textarea.select();
@@ -97,43 +229,192 @@
   }
 
   function handleMediaSubmit() {
-    if (!streamInputUrl) return;
+    if (!streamInputUrl.trim()) return;
+
+    currentVideoUrl = streamInputUrl;
+
+    const videoId = extractYoutubeVideoId(streamInputUrl);
+
+    setTimeout(() => {
+  createYoutubePlayer(videoId);
+}, 200);
+
+    socket.emit("sync-video", {
+      roomId,
+      videoUrl: streamInputUrl,
+    });
+
+    streamInputUrl = "";
   }
 
   function sendMessage() {
     if (!newMessage.trim()) return;
+
+    const displayUser = username.trim() || "You";
+
+    const messageData = {
+      roomId,
+      user: displayUser,
+      text: newMessage,
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      isHost: isCreator,
+    };
+
     messages = [
       ...messages,
       {
         id: Date.now(),
-        user: "You",
-        text: newMessage,
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        isHost: true,
+        ...messageData,
       },
     ];
+
+    localStorage.setItem(
+      `watchtogether_messages_${roomId}`,
+      JSON.stringify(messages),
+    );
+
+    socket.emit("send-message", messageData);
     newMessage = "";
 
     setTimeout(() => {
       const scroller = document.querySelector(".message-scroller-layer");
-      if (scroller) scroller.scrollTop = scroller.scrollHeight;
+      if (scroller) {
+        scroller.scrollTop = scroller.scrollHeight;
+      }
     }, 50);
   }
 
+  function createYoutubePlayer(videoId) {
+  if (!videoId) return;
+
+  // If player already exists
+  if (player && playerReady) {
+    player.loadVideoById(videoId);
+    player.playVideo();
+    return;
+  }
+
+  // Wait until YouTube API loads
+  const waitForYT = setInterval(() => {
+    if (window.YT && window.YT.Player) {
+      clearInterval(waitForYT);
+
+      player = new window.YT.Player("youtube-player", {
+        width: "100%",
+        height: "100%",
+        videoId,
+
+        playerVars: {
+          autoplay: 1,
+          controls: 1,
+          rel: 0,
+        },
+
+        events: {
+          onReady: (event) => {
+            playerReady = true;
+
+            event.target.playVideo();
+          },
+
+          onStateChange: handlePlayerStateChange,
+        },
+      });
+    }
+  }, 300);
+}
+
+  function handlePlayerStateChange(event) {
+    if (isSyncing || !playerReady) return;
+
+    const currentTime = player.getCurrentTime();
+
+    if (event.data === YT.PlayerState.PLAYING) {
+      socket.emit("video-play", {
+        roomId,
+        time: currentTime,
+      });
+    }
+
+    if (event.data === YT.PlayerState.PAUSED) {
+      socket.emit("video-pause", {
+        roomId,
+        time: currentTime,
+      });
+    }
+  }
+
+  function extractYoutubeVideoId(url) {
+    try {
+      const parsed = new URL(url);
+
+      let videoId = parsed.searchParams.get("v");
+
+      if (!videoId && parsed.hostname.includes("youtu.be")) {
+        videoId = parsed.pathname.slice(1);
+      }
+
+      return videoId;
+    } catch {
+      return null;
+    }
+  }
+
   function toggleFullscreenElement() {
-    const player = document.querySelector(".video-canvas-viewport");
+    const container = document.querySelector(".video-canvas-viewport");
+
     if (!document.fullscreenElement) {
-      player
-        ?.requestFullscreen()
-        .catch((err) => alert(`Error enabling fullscreen: ${err.message}`));
+      container?.requestFullscreen?.();
     } else {
       document.exitFullscreen?.();
     }
   }
 </script>
+
+{#if !checkingAuth && !isUsernameSubmitted}
+  <div class="identity-gate-overlay">
+    <div class="identity-modal-card">
+      <div class="brand-logo-frame large">
+        <svg
+          class="logo-svg"
+          viewBox="0 0 180 180"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M40,30 C-10,70 -10,110 40,150 L85,105 C60,85 60,45 85,25Z"
+            fill="#0fccb4"
+          />
+          <polygon points="106,46 180,85 106,124" fill="#f5a623" />
+          <circle cx="90" cy="85" r="10" fill="#e8f0ff" />
+        </svg>
+      </div>
+      <h3>Enter the Room</h3>
+      <p>
+        Configure your nickname identity before accessing the cluster node
+        pipeline.
+      </p>
+
+      <div class="gate-input-wrapper">
+        <input
+          type="text"
+          placeholder="Type username..."
+          bind:value={username}
+          on:keydown={(e) => e.key === "Enter" && handleUsernameSubmit()}
+        />
+        <button
+          type="button"
+          on:click={handleUsernameSubmit}
+          disabled={!username.trim()}
+        >
+          Join Room
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <main class="workspace-viewport" class:landscape-mode={isMobileLandscape}>
   <div class="ambient-glow decoration-left"></div>
@@ -201,27 +482,30 @@
         </button>
       </div>
 
-      <div class="canvas-empty-state">
-        <div class="empty-state-icon">
-          <svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M40,30 C-10,70 -10,110 40,150 L85,105 C60,85 60,45 85,25Z"
-              fill="currentColor"
-              opacity="0.12"
-            />
-            <polygon
-              points="106,46 180,85 106,124"
-              fill="currentColor"
-              opacity="0.25"
-            />
-          </svg>
+      {#if currentVideoUrl}
+        <div id="youtube-player"></div>
+      {:else}
+        <div class="canvas-empty-state">
+          <div class="empty-state-icon">
+            <svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M40,30 C-10,70 -10,110 40,150 L85,105 C60,85 60,45 85,25Z"
+                fill="currentColor"
+                opacity="0.12"
+              />
+              <polygon
+                points="106,46 180,85 106,124"
+                fill="currentColor"
+                opacity="0.25"
+              />
+            </svg>
+          </div>
+
+          <h4>Ready to Watch</h4>
+
+          <p>Paste a YouTube link to start streaming together.</p>
         </div>
-        <h4>Ready to Watch</h4>
-        <p>
-          Drop a web stream reference or local path configuration below to bind
-          frame synchronization layers.
-        </p>
-      </div>
+      {/if}
     </div>
 
     <div class="source-injector-card">
@@ -309,7 +593,7 @@
         <h5>Sync Node Access</h5>
         <div class="live-counter">
           <span class="pulse-dot"></span>
-          <span>{messages.length ? messages.length : 1} connected</span>
+          <span>{connectedCount} connected</span>
         </div>
       </div>
 
@@ -349,7 +633,10 @@
 
       <div class="message-scroller-layer">
         {#each messages as msg (msg.id)}
-          <div class="chat-card-wrapper" class:self-card={msg.user === "You"}>
+          <div
+            class="chat-card-wrapper"
+            class:self-card={msg.user === username || msg.user === "You"}
+          >
             <div class="chat-card-header">
               <span class="card-author" class:host-accent={msg.isHost}
                 >{msg.user}</span
@@ -376,7 +663,8 @@
             on:keydown={(e) => e.key === "Enter" && sendMessage()}
           />
           <button
-            on:click={sendMessage}
+            type="button"
+            on:click={() => sendMessage()}
             class="message-dispatch-trigger"
             class:has-text={newMessage.trim() !== ""}
             aria-label="Send Message"
@@ -438,6 +726,97 @@
     -webkit-font-smoothing: antialiased;
     overflow: hidden;
     position: relative;
+  }
+
+  #youtube-player {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 2;
+  }
+
+  #youtube-player iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  /* Identity Gate Modal Styles */
+  .identity-gate-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 8, 14, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .identity-modal-card {
+    background: var(--bg-dark-surface);
+    border: 1px solid var(--border-mid-line);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  }
+  .brand-logo-frame.large {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 20px;
+  }
+  .identity-modal-card h3 {
+    font-family: "Syne", sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: var(--font-primary);
+  }
+  .identity-modal-card p {
+    font-size: 0.88rem;
+    color: var(--font-secondary);
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+  .gate-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .gate-input-wrapper input {
+    background: rgba(2, 4, 8, 0.6);
+    border: 1px solid var(--border-mid-line);
+    border-radius: 10px;
+    padding: 14px;
+    color: var(--font-primary);
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .gate-input-wrapper input:focus {
+    border-color: var(--neon-cyan);
+  }
+  .gate-input-wrapper button {
+    background: var(--neon-cyan);
+    color: var(--bg-dark-base);
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .gate-input-wrapper button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .gate-input-wrapper button:not(:disabled):hover {
+    opacity: 0.9;
   }
 
   .ambient-glow {
@@ -1122,5 +1501,14 @@
   .video-canvas-viewport:fullscreen .canvas-control-overlay {
     top: 24px;
     right: 24px;
+  }
+
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+    }
+    100% {
+      box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+    }
   }
 </style>

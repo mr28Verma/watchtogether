@@ -22,19 +22,68 @@ app.get("/", (req, res) => {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+  // JOIN ROOM
   socket.on("join-room", (roomId) => {
     socket.join(roomId);
 
     console.log(`User joined room: ${roomId}`);
 
-    socket.to(roomId).emit("user-joined");
+    const room = io.sockets.adapter.rooms.get(roomId);
+
+    const count = room ? room.size : 1;
+
+    io.to(roomId).emit("room-presence", {
+      roomId,
+      count,
+    });
   });
 
+  // REQUEST PRESENCE
+  socket.on("request-presence", ({ roomId }) => {
+    const room = io.sockets.adapter.rooms.get(roomId);
+
+    const count = room ? room.size : 1;
+
+    io.to(roomId).emit("room-presence", {
+      roomId,
+      count,
+    });
+  });
+
+  // SEND MESSAGE
   socket.on("send-message", (data) => {
+    console.log("Message received:", data);
+
     socket.to(data.roomId).emit("receive-message", data);
   });
 
+  socket.on("sync-video", (data) => {
+  socket.to(data.roomId).emit("video-synced", data);
+});
+
+socket.on("video-play", (data) => {
+  socket.to(data.roomId).emit("video-play", data);
+});
+
+socket.on("video-pause", (data) => {
+  socket.to(data.roomId).emit("video-pause", data);
+});
+
+  // DISCONNECT
   socket.on("disconnect", () => {
+    setTimeout(() => {
+      io.sockets.adapter.rooms.forEach((clients, roomId) => {
+        if (!clients.has(roomId)) {
+          const count = clients.size;
+
+          io.to(roomId).emit("room-presence", {
+            roomId,
+            count,
+          });
+        }
+      });
+    }, 300);
+
     console.log("User disconnected");
   });
 });
