@@ -19,6 +19,8 @@ app.get("/", (req, res) => {
   res.send("WatchTogether backend running");
 });
 
+const roomStates = {};
+
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
@@ -36,6 +38,12 @@ io.on("connection", (socket) => {
       roomId,
       count,
     });
+
+    const state = roomStates[roomId];
+
+    if (state) {
+      socket.emit("room-state", state);
+    }
   });
 
   // REQUEST PRESENCE
@@ -58,16 +66,33 @@ io.on("connection", (socket) => {
   });
 
   socket.on("sync-video", (data) => {
-  socket.to(data.roomId).emit("video-synced", data);
-});
+    roomStates[data.roomId] = {
+      ...(roomStates[data.roomId] || {}),
+      videoUrl: data.videoUrl,
+    };
 
-socket.on("video-play", (data) => {
-  socket.to(data.roomId).emit("video-play", data);
-});
+    socket.to(data.roomId).emit("video-synced", data);
+  });
 
-socket.on("video-pause", (data) => {
-  socket.to(data.roomId).emit("video-pause", data);
-});
+  socket.on("video-play", (data) => {
+    roomStates[data.roomId] = {
+      ...(roomStates[data.roomId] || {}),
+      playing: true,
+      currentTime: data.time,
+    };
+
+    socket.to(data.roomId).emit("video-play", data);
+  });
+
+  socket.on("video-pause", (data) => {
+    roomStates[data.roomId] = {
+      ...(roomStates[data.roomId] || {}),
+      playing: false,
+      currentTime: data.time,
+    };
+
+    socket.to(data.roomId).emit("video-pause", data);
+  });
 
   // DISCONNECT
   socket.on("disconnect", () => {
