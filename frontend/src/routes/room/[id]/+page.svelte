@@ -420,6 +420,14 @@
     }
   }
 
+  function leaveRoom() {
+  socket.disconnect();
+
+  setTimeout(() => {
+    window.location.href = "/";
+  }, 300);
+}
+
   function toggleFullscreenElement() {
     const container = document.querySelector(".video-canvas-viewport");
 
@@ -500,7 +508,11 @@
       </div>
 
       <div class="system-status">
-        <a href="/" class="leave-room-trigger" title="Leave Room">
+        <button
+          class="leave-room-trigger"
+          title="Leave Room"
+          on:click={leaveRoom}
+        >
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -512,7 +524,7 @@
               d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
             /></svg
           >
-        </a>
+      </button>
       </div>
     </header>
 
