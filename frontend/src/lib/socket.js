@@ -6,4 +6,9 @@ const URL =
     ? "http://localhost:5000"
     : "https://watchtogether-backend-w26b.onrender.com";
 
-export const socket = io(URL);
+export const socket = io(URL, {
+  transports: ["websocket", "polling"],
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000,
+});
