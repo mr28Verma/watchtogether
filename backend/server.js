@@ -26,26 +26,37 @@ io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
   // JOIN ROOM
-  socket.on("join-room", (roomId) => {
-    socket.join(roomId);
+  socket.on("join-room", ({ roomId, username }) => {
+  socket.join(roomId);
 
-    console.log(`User joined room: ${roomId}`);
+  socket.data.roomId = roomId;
+  socket.data.username = username;
 
-    const room = io.sockets.adapter.rooms.get(roomId);
+  console.log(`${username} joined room: ${roomId}`);
 
-    const count = room ? room.size : 1;
+  const room = io.sockets.adapter.rooms.get(roomId);
 
-    io.to(roomId).emit("room-presence", {
-      roomId,
-      count,
-    });
+  const count = room ? room.size : 1;
 
-    const state = roomStates[roomId];
-
-    if (state) {
-      socket.emit("room-state", state);
-    }
+  io.to(roomId).emit("room-presence", {
+    roomId,
+    count,
   });
+
+  io.to(roomId).emit("system-message", {
+    text: `${username} joined the room`,
+    time: new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  });
+
+  const state = roomStates[roomId];
+
+  if (state) {
+    socket.emit("room-state", state);
+  }
+});
 
   // REQUEST PRESENCE
   socket.on("request-presence", ({ roomId }) => {
@@ -97,21 +108,41 @@ io.on("connection", (socket) => {
 
   // DISCONNECT
   socket.on("disconnect", () => {
-    setTimeout(() => {
-      io.sockets.adapter.rooms.forEach((clients, roomId) => {
-        if (!clients.has(roomId)) {
-          const count = clients.size;
+  const roomId = socket.data.roomId;
+  const username = socket.data.username;
 
-          io.to(roomId).emit("room-presence", {
-            roomId,
-            count,
-          });
+  if (roomId && username) {
+    io.to(roomId).emit("system-message", {
+      text: `${username} left the room`,
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    });
+  }
+
+  setTimeout(() => {
+    io.sockets.adapter.rooms.forEach((clients, roomId) => {
+      if (!clients.has(roomId)) {
+        const count = clients.size;
+
+        io.to(roomId).emit("room-presence", {
+          roomId,
+          count,
+        });
+
+        // ROOM EXPIRE
+        if (count === 0) {
+          delete roomStates[roomId];
+
+          console.log(`Room expired: ${roomId}`);
         }
-      });
-    }, 300);
+      }
+    });
+  }, 300);
 
-    console.log("User disconnected");
-  });
+  console.log("User disconnected");
+});
 });
 
 

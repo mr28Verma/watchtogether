@@ -105,7 +105,10 @@
     socket.on("connect", () => {
       console.log("CONNECTED:", socket.id);
 
-      socket.emit("join-room", roomId);
+      socket.emit("join-room", {
+        roomId,
+        username: username || "Anonymous",
+      });
 
       setTimeout(() => {
         socket.emit("request-presence", { roomId });
@@ -177,6 +180,32 @@
 
       setTimeout(() => {
         const scroller = document.querySelector(".message-scroller-layer");
+        if (scroller) {
+          scroller.scrollTop = scroller.scrollHeight;
+        }
+      }, 50);
+    });
+
+    socket.on("system-message", (data) => {
+      messages = [
+        ...messages,
+        {
+          id: Date.now() + Math.random(),
+          user: "SYSTEM",
+          text: data.text,
+          time: data.time,
+          isSystem: true,
+        },
+      ];
+
+      localStorage.setItem(
+        `watchtogether_messages_${roomId}`,
+        JSON.stringify(messages),
+      );
+
+      setTimeout(() => {
+        const scroller = document.querySelector(".message-scroller-layer");
+
         if (scroller) {
           scroller.scrollTop = scroller.scrollHeight;
         }
@@ -664,6 +693,7 @@
           <div
             class="chat-card-wrapper"
             class:self-card={msg.user === username || msg.user === "You"}
+            class:system-card={msg.isSystem}
           >
             <div class="chat-card-header">
               <span class="card-author" class:host-accent={msg.isHost}
@@ -755,6 +785,28 @@
     overflow: hidden;
     position: relative;
   }
+
+  .system-card {
+  align-self: center;
+  max-width: 100%;
+}
+
+.system-card .chat-card-bubble {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 8px 14px;
+  text-align: center;
+}
+
+.system-card .chat-card-bubble p {
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.system-card .card-author {
+  display: none;
+}
 
   #youtube-player {
     width: 100%;
