@@ -107,38 +107,40 @@ io.on("connection", (socket) => {
   });
 
   // DISCONNECT
-  socket.on("disconnect", () => {
+socket.on("disconnect", () => {
   const roomId = socket.data.roomId;
   const username = socket.data.username;
 
-  if (roomId && username) {
-    io.to(roomId).emit("system-message", {
-      text: `${username} left the room`,
-      time: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    });
-  }
+  if (!roomId) return;
 
   setTimeout(() => {
-    io.sockets.adapter.rooms.forEach((clients, roomId) => {
-      if (!clients.has(roomId)) {
-        const count = clients.size;
+    const room = io.sockets.adapter.rooms.get(roomId);
 
-        io.to(roomId).emit("room-presence", {
-          roomId,
-          count,
-        });
+    const count = room ? room.size : 0;
 
-        // ROOM EXPIRE
-        if (count === 0) {
-          delete roomStates[roomId];
-
-          console.log(`Room expired: ${roomId}`);
-        }
-      }
+    // UPDATE USER COUNT
+    io.to(roomId).emit("room-presence", {
+      roomId,
+      count,
     });
+
+    // USER LEFT MESSAGE
+    if (username) {
+      io.to(roomId).emit("system-message", {
+        text: `${username} left the room`,
+        time: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      });
+    }
+
+    // EXPIRE ROOM
+    if (count === 0) {
+      delete roomStates[roomId];
+
+      console.log(`Room expired: ${roomId}`);
+    }
   }, 300);
 
   console.log("User disconnected");
