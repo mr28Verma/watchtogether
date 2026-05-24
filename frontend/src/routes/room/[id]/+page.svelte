@@ -3,11 +3,17 @@
   import { socket } from "$lib/socket";
 
   let streamInputUrl = "";
+  let uploadedVideoType = "";
   let currentVideoUrl = $state("");
   let inviteCopied = $state(false);
   let isMobileLandscape = false;
   let roomId = "";
   let roomLink = "";
+
+  // File Cast UI state
+  let showFileCastPanel = $state(false);
+  let isUploading = $state(false);
+  let uploadProgress = $state(0);
 
   let player;
   let playerReady = false;
@@ -63,15 +69,22 @@
     }
   }
 
+  // Helper: determine if a URL is a cloudinary/uploaded video (not youtube)
+  function isCloudinaryUrl(url) {
+    if (!url) return false;
+    return (
+      !url.includes("youtube.com") &&
+      !url.includes("youtu.be")
+    );
+  }
+
   onMount(() => {
     if (socket.disconnected) {
       socket.connect();
     }
 
     const tag = document.createElement("script");
-
     tag.src = "https://www.youtube.com/iframe_api";
-
     document.body.appendChild(tag);
 
     socket.on("room-state", (state) => {
@@ -79,27 +92,50 @@
 
       currentVideoUrl = state.videoUrl;
 
-      const videoId = extractYoutubeVideoId(state.videoUrl);
+      // YOUTUBE RESTORE
+      if (
+        state.videoUrl.includes("youtube.com") ||
+        state.videoUrl.includes("youtu.be")
+      ) {
+        const videoId = extractYoutubeVideoId(state.videoUrl);
 
-      setTimeout(() => {
-        createYoutubePlayer(videoId);
+        setTimeout(() => {
+          createYoutubePlayer(videoId);
 
-        const waitForPlayer = setInterval(() => {
-          if (player && playerReady) {
-            clearInterval(waitForPlayer);
+          const waitForPlayer = setInterval(() => {
+            if (player && playerReady) {
+              clearInterval(waitForPlayer);
 
-            player.seekTo(state.currentTime || 0, true);
+              player.seekTo(state.currentTime || 0, true);
 
-            setTimeout(() => {
-              if (state.playing) {
-                player.playVideo();
-              } else {
-                player.pauseVideo();
-              }
-            }, 300);
+              setTimeout(() => {
+                if (state.playing) {
+                  player.playVideo();
+                } else {
+                  player.pauseVideo();
+                }
+              }, 300);
+            }
+          }, 200);
+        }, 300);
+      }
+
+      // CLOUDINARY RESTORE
+      else {
+        setTimeout(() => {
+          const video = document.getElementById("cloudinary-video");
+
+          if (!video) return;
+
+          video.currentTime = state.currentTime || 0;
+
+          if (state.playing) {
+            video.play().catch(() => {});
+          } else {
+            video.pause();
           }
-        }, 200);
-      }, 300);
+        }, 1000);
+      }
     });
 
     socket.on("connect", () => {
@@ -127,15 +163,41 @@
     socket.on("video-synced", (data) => {
       currentVideoUrl = data.videoUrl;
 
-      const videoId = extractYoutubeVideoId(data.videoUrl);
+      if (
+        data.videoUrl.includes("youtube.com") ||
+        data.videoUrl.includes("youtu.be")
+      ) {
+        const videoId = extractYoutubeVideoId(data.videoUrl);
 
-      // Wait for DOM update
-      setTimeout(() => {
-        createYoutubePlayer(videoId);
-      }, 200);
+        setTimeout(() => {
+          createYoutubePlayer(videoId);
+        }, 200);
+      }
+      // Cloudinary video: the <video> element will reactively render via currentVideoUrl
     });
 
     socket.on("video-play", (data) => {
+      // Determine type from current URL if not provided
+      const isCloudinary = data.type === "cloudinary" || isCloudinaryUrl(currentVideoUrl);
+
+      if (isCloudinary) {
+        const video = document.getElementById("cloudinary-video");
+
+        if (!video) return;
+
+        isSyncing = true;
+
+        video.currentTime = data.time;
+        video.play().catch(() => {});
+
+        setTimeout(() => {
+          isSyncing = false;
+        }, 800);
+
+        return;
+      }
+
+      // YOUTUBE
       if (!playerReady || !player) return;
 
       isSyncing = true;
@@ -149,6 +211,27 @@
     });
 
     socket.on("video-pause", (data) => {
+      // Determine type from current URL if not provided
+      const isCloudinary = data.type === "cloudinary" || isCloudinaryUrl(currentVideoUrl);
+
+      if (isCloudinary) {
+        const video = document.getElementById("cloudinary-video");
+
+        if (!video) return;
+
+        isSyncing = true;
+
+        video.currentTime = data.time;
+        video.pause();
+
+        setTimeout(() => {
+          isSyncing = false;
+        }, 800);
+
+        return;
+      }
+
+      // YOUTUBE
       if (!playerReady || !player) return;
 
       isSyncing = true;
@@ -286,21 +369,91 @@
     }, 2000);
   }
 
+  // Triggered from the hidden input OR the File Cast panel
+  async function handleFileUpload(event) {
+    const file = event.target.files[0];
+
+    if (!file) return;
+
+    isUploading = true;
+    uploadProgress = 0;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "watchtogether_upload");
+
+    try {
+      // Use XMLHttpRequest to track upload progress
+      const data = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            uploadProgress = Math.round((e.loaded / e.total) * 100);
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(JSON.parse(xhr.responseText));
+          } else {
+            reject(new Error(`Upload failed: ${xhr.statusText}`));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error("Network error during upload"));
+
+        xhr.open("POST", "https://api.cloudinary.com/v1_1/ddnw2emhi/video/upload");
+        xhr.send(formData);
+      });
+
+      currentVideoUrl = data.secure_url;
+      uploadedVideoType = "cloudinary";
+      showFileCastPanel = false;
+      isUploading = false;
+      uploadProgress = 0;
+
+      socket.emit("sync-video", {
+        roomId,
+        videoUrl: data.secure_url,
+        publicId: data.public_id,
+        type: "cloudinary",
+      });
+
+      console.log("Uploaded:", data.secure_url);
+    } catch (err) {
+      console.error("Upload failed:", err);
+      isUploading = false;
+      uploadProgress = 0;
+    }
+
+    // Reset the input so the same file can be re-uploaded if needed
+    event.target.value = "";
+  }
+
   function handleMediaSubmit() {
     if (!streamInputUrl.trim()) return;
 
     currentVideoUrl = streamInputUrl;
 
-    const videoId = extractYoutubeVideoId(streamInputUrl);
-
-    setTimeout(() => {
-      createYoutubePlayer(videoId);
-    }, 200);
+    const isYT =
+      streamInputUrl.includes("youtube.com") ||
+      streamInputUrl.includes("youtu.be");
 
     socket.emit("sync-video", {
       roomId,
       videoUrl: streamInputUrl,
+      type: isYT ? "youtube" : "cloudinary",
     });
+
+    // AUTO CREATE YOUTUBE PLAYER
+    if (isYT) {
+      const videoId = extractYoutubeVideoId(streamInputUrl);
+
+      setTimeout(() => {
+        createYoutubePlayer(videoId);
+      }, 200);
+    }
 
     streamInputUrl = "";
   }
@@ -350,7 +503,7 @@
 
     // If player already exists
     if (player && playerReady) {
-      player.cueVideoById(videoId);
+      player.loadVideoById(videoId);
       return;
     }
 
@@ -373,7 +526,6 @@
           events: {
             onReady: (event) => {
               playerReady = true;
-
               event.target.playVideo();
             },
 
@@ -393,6 +545,7 @@
       socket.emit("video-play", {
         roomId,
         time: currentTime,
+        type: "youtube",
       });
     }
 
@@ -400,8 +553,29 @@
       socket.emit("video-pause", {
         roomId,
         time: currentTime,
+        type: "youtube",
       });
     }
+  }
+
+  function handleCloudinaryPlay(event) {
+    if (isSyncing) return;
+
+    socket.emit("video-play", {
+      roomId,
+      time: event.target.currentTime,
+      type: "cloudinary",
+    });
+  }
+
+  function handleCloudinaryPause(event) {
+    if (isSyncing) return;
+
+    socket.emit("video-pause", {
+      roomId,
+      time: event.target.currentTime,
+      type: "cloudinary",
+    });
   }
 
   function extractYoutubeVideoId(url) {
@@ -421,12 +595,12 @@
   }
 
   function leaveRoom() {
-  socket.disconnect();
+    socket.disconnect();
 
-  setTimeout(() => {
-    window.location.href = "/";
-  }, 300);
-}
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 300);
+  }
 
   function toggleFullscreenElement() {
     const container = document.querySelector(".video-canvas-viewport");
@@ -436,6 +610,10 @@
     } else {
       document.exitFullscreen?.();
     }
+  }
+
+  function triggerFilePicker() {
+    document.getElementById("file-cast-input").click();
   }
 </script>
 
@@ -524,7 +702,7 @@
               d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
             /></svg
           >
-      </button>
+        </button>
       </div>
     </header>
 
@@ -552,7 +730,21 @@
       </div>
 
       {#if currentVideoUrl}
-        <div id="youtube-player"></div>
+        {#if currentVideoUrl.includes("youtube.com") || currentVideoUrl.includes("youtu.be")}
+          <div id="youtube-player"></div>
+        {:else}
+          <video
+            id="cloudinary-video"
+            controls
+            autoplay
+            playsinline
+            style="width:100%; height:100%; object-fit:contain;"
+            on:play={handleCloudinaryPlay}
+            on:pause={handleCloudinaryPause}
+          >
+            <source src={currentVideoUrl} type="video/mp4" />
+          </video>
+        {/if}
       {:else}
         <div class="canvas-empty-state">
           <div class="empty-state-icon">
@@ -572,7 +764,7 @@
 
           <h4>Ready to Watch</h4>
 
-          <p>Paste a YouTube link to start streaming together.</p>
+          <p>Paste a YouTube link or cast a local file to start streaming together.</p>
         </div>
       {/if}
     </div>
@@ -593,11 +785,71 @@
         >
         <input
           type="text"
-          placeholder="Paste video stream link, magnet URL, or drag storage media..."
+          placeholder="Paste a YouTube URL or video stream link..."
           bind:value={streamInputUrl}
           on:keydown={(e) => e.key === "Enter" && handleMediaSubmit()}
         />
       </div>
+
+      <!-- File Cast Panel: shown inline when File Cast is clicked -->
+      {#if showFileCastPanel}
+        <div class="file-cast-panel">
+          <div class="file-cast-panel-header">
+            <span class="file-cast-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              File Cast
+            </span>
+            <button class="file-cast-close" on:click={() => (showFileCastPanel = false)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+
+          {#if isUploading}
+            <div class="upload-progress-wrapper">
+              <div class="upload-progress-label">
+                <span>Uploading…</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div class="upload-progress-track">
+                <div class="upload-progress-bar" style="width: {uploadProgress}%"></div>
+              </div>
+            </div>
+          {:else}
+            <!-- Hidden actual file input -->
+            <input
+              id="file-cast-input"
+              type="file"
+              accept="video/*"
+              style="display:none"
+              on:change={handleFileUpload}
+            />
+            <div class="file-cast-drop-zone" on:click={triggerFilePicker}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <polyline points="16 16 12 12 8 16" />
+                <line x1="12" y1="12" x2="12" y2="21" />
+                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+              </svg>
+              <p class="drop-zone-label">Click to choose a video file</p>
+              <p class="drop-zone-sub">MP4, MOV, WebM, MKV supported</p>
+            </div>
+
+            <button class="file-cast-upload-btn" on:click={triggerFilePicker}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              Upload & Cast
+            </button>
+          {/if}
+        </div>
+      {/if}
 
       <div class="pipeline-triggers">
         <button
@@ -631,8 +883,9 @@
           <span>VBrowser</span>
         </button>
         <button
-          on:click={handleMediaSubmit}
+          on:click={() => (showFileCastPanel = !showFileCastPanel)}
           class="pipe-btn fill-purple"
+          class:active-panel={showFileCastPanel}
           title="File Cast"
         >
           <svg
@@ -799,26 +1052,26 @@
   }
 
   .system-card {
-  align-self: center;
-  max-width: 100%;
-}
+    align-self: center;
+    max-width: 100%;
+  }
 
-.system-card .chat-card-bubble {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px dashed rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
-  padding: 8px 14px;
-  text-align: center;
-}
+  .system-card .chat-card-bubble {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px dashed rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    padding: 8px 14px;
+    text-align: center;
+  }
 
-.system-card .chat-card-bubble p {
-  color: #94a3b8;
-  font-size: 0.75rem;
-}
+  .system-card .chat-card-bubble p {
+    color: #94a3b8;
+    font-size: 0.75rem;
+  }
 
-.system-card .card-author {
-  display: none;
-}
+  .system-card .card-author {
+    display: none;
+  }
 
   #youtube-player {
     width: 100%;
@@ -1049,6 +1302,154 @@
   .input-row input::placeholder {
     color: var(--font-secondary);
     opacity: 0.6;
+  }
+
+  /* ── File Cast Panel ── */
+  .file-cast-panel {
+    background: rgba(139, 92, 246, 0.04);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+    animation: panel-in 0.18s ease;
+  }
+
+  @keyframes panel-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .file-cast-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .file-cast-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--neon-purple);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .file-cast-title svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .file-cast-close {
+    background: none;
+    border: none;
+    color: var(--font-secondary);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+  }
+  .file-cast-close svg {
+    width: 14px;
+    height: 14px;
+  }
+  .file-cast-close:hover {
+    color: var(--font-primary);
+    background: rgba(255,255,255,0.05);
+  }
+
+  .file-cast-drop-zone {
+    border: 1px dashed rgba(139, 92, 246, 0.3);
+    border-radius: 8px;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .file-cast-drop-zone:hover {
+    border-color: rgba(139, 92, 246, 0.6);
+    background: rgba(139, 92, 246, 0.06);
+  }
+  .file-cast-drop-zone svg {
+    width: 26px;
+    height: 26px;
+    color: var(--neon-purple);
+    opacity: 0.7;
+    margin-bottom: 2px;
+  }
+  .drop-zone-label {
+    font-size: 0.82rem;
+    color: var(--font-primary);
+    font-weight: 600;
+  }
+  .drop-zone-sub {
+    font-size: 0.72rem;
+    color: var(--font-secondary);
+  }
+
+  .file-cast-upload-btn {
+    width: 100%;
+    background: var(--neon-purple);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: opacity 0.2s, transform 0.15s;
+  }
+  .file-cast-upload-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+  .file-cast-upload-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  /* Upload progress */
+  .upload-progress-wrapper {
+    padding: 4px 0 2px;
+  }
+  .upload-progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--font-secondary);
+    margin-bottom: 8px;
+  }
+  .upload-progress-track {
+    height: 4px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .upload-progress-bar {
+    height: 100%;
+    background: var(--neon-purple);
+    border-radius: 99px;
+    transition: width 0.2s ease;
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+  }
+
+  /* Active state for File Cast button */
+  .pipe-btn.active-panel {
+    background: rgba(139, 92, 246, 0.12);
+    border-color: rgba(139, 92, 246, 0.35);
+    color: var(--neon-purple);
   }
 
   .pipeline-triggers {
@@ -1593,14 +1994,5 @@
   .video-canvas-viewport:fullscreen .canvas-control-overlay {
     top: 24px;
     right: 24px;
-  }
-
-  @keyframes pulse {
-    0% {
-      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
-    }
-    100% {
-      box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
-    }
   }
 </style>
